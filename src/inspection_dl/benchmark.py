@@ -122,6 +122,9 @@ def benchmark(
         "results": [],
         "notes": [
             "Local warmed inference; no network or HTTP overhead.",
+            "Bundle load timing includes validation and model construction, but excludes Python imports and initial CUDA context creation.",
+            "Forward throughput uses preloaded device inputs; input transfer and CPU output materialization are excluded from that rate.",
+            "Decode/tensor timing includes local image-file I/O, but excludes the preceding checksum verification.",
             "Forward timing includes torchvision resize/normalize, detector, NMS and coordinate restoration.",
             "Transfer from CPU to GPU measured separately; no claim of kernel-only model time.",
             "p99 omitted below 1000 timed batches.",
