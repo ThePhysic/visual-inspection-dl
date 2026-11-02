@@ -15,8 +15,8 @@ prepared manifest JSON and `--data-root` to the directory against which its
 remain independent of a particular checkout location.
 
 ```powershell
-python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output runs/no_flip --epochs 12 --batch-size 8 --device cuda --amp
-python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output runs/flip --epochs 12 --batch-size 8 --device cuda --amp --horizontal-flip
+python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output runs/no_flip --epochs 12 --batch-size 8 --lr 0.0003 --device cuda
+python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output runs/flip --epochs 12 --batch-size 8 --lr 0.0003 --device cuda --horizontal-flip
 ```
 
 The controlled comparison changes horizontal reflection probability from zero
@@ -30,7 +30,8 @@ No architecture or hyperparameter search is implied.
 
 Defaults are 12 epochs, batch size 8, seed 42, four CPU threads, AdamW learning
 rate 0.001 and weight decay 0.0005, with cosine learning-rate decay over the
-fixed epoch budget. AMP is explicit and CUDA-only; omit `--amp` for FP32. The
+fixed epoch budget. The conservative PCB-IND recipe above explicitly uses
+learning rate 0.0003 and FP32. AMP is explicit and CUDA-only. The
 intended machine is the documented RTX 4060 laptop GPU with approximately
 8 GB VRAM. There is no cloud or multi-GPU requirement. `--device cpu` supports
 CPU training/inference but full training is expected to be slower.
@@ -75,7 +76,7 @@ including the original total epoch count, seed, data-manifest digest, precision,
 and augmentation:
 
 ```powershell
-python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output runs/no_flip --epochs 12 --batch-size 8 --device cuda --amp --resume runs/no_flip/last.pt
+python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output runs/no_flip --epochs 12 --batch-size 8 --lr 0.0003 --device cuda --resume runs/no_flip/last.pt
 ```
 
 Resume occurs at epoch boundaries. An interrupted partial epoch is rerun from
@@ -83,6 +84,19 @@ the last completed checkpoint. Exact replay across different runtime/device
 versions is not guaranteed. Existing run outputs are not overwritten by a new
 training invocation without explicit resume. Keep a run's `best.pt` alongside
 `last.pt` when resuming, so its prior best release candidate is preserved.
+
+A failed initial PCB-IND attempt used learning rate 0.001 and AMP and stopped
+with a nonfinite forward loss before completing its first epoch. Its records
+remain as a negative result. A bounded diagnostic replay on training images
+only ran 50 batches of that recipe and 50 batches of FP32 at 0.0003 from the
+same initialized weights: the AMP recipe repeatedly produced nonfinite
+gradients and reduced its loss scale; the conservative recipe had finite
+losses and gradients throughout the replay. This motivates a fresh FP32 study,
+without isolating AMP versus learning rate as the cause and without claiming
+that 50 batches prove full-run stability. `reports/training-diagnosis.json`
+contains the observed batch evidence. Future nonfinite forward failures write
+`failure.json` with sample IDs, losses, batch/epoch, previous finite gradient
+norm, optimizer scale/configuration and source identity before raising.
 
 ## Validation selection and final holdout
 
@@ -115,7 +129,19 @@ IoU 0.5. AP50:.95 averages ten thresholds 0.50,0.55,...,0.95 and classes with
 ground truth. Classes absent from the evaluation split have null AP and are
 excluded from the macro denominator; their false-positive counts remain visible.
 There is no crowd/ignore handling or COCO object-area/maxDet averaging. Results
-are labeled COCO-style, without claiming general COCOeval equivalence.
+are labeled COCO-style, without claiming general COCOeval equivalence. An
+independent pycocotools 2.0.10 cross-check covers three seeded multiclass
+synthetic fixtures (90 images total), including localization noise, duplicate
+detections, wrong classes, misses and false positives. All 90 per-class/per-IoU
+AP comparisons agree within 1e-12; the measured maximum absolute difference
+is recorded in `reports/metric-reference.json`. This verifies supported metric
+behavior, not trained-model quality. To repeat it without changing serving
+dependencies:
+
+```powershell
+$env:PYTHONPATH='src'
+uv run --no-project --isolated --python 3.12 --with numpy==2.2.6 --with pycocotools==2.0.10 python scripts/check_metric_reference.py
+```
 
 At the selected score threshold, per-class and micro TP/FP/FN, precision, recall
 and F1 use same-class IoU0.5 matching. The separate confusion matrix uses

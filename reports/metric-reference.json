@@ -1,0 +1,671 @@
+{
+  "script_sha256": "9e88801fa168dc0b93ff475c7aa430ff839f441a266158dfd0d323793a78b32b",
+  "kind": "synthetic independent metric verification, not trained-model evaluation",
+  "reference": "pycocotools.COCOeval bbox",
+  "pycocotools_version": "2.0.10",
+  "numpy_version": "2.2.6",
+  "source": "https://github.com/cocodataset/cocoapi",
+  "fixture_definition": "three seeded 30-image multiclass fixtures, random finite boxes, partial recall, noisy localization, wrong classes, duplicate detections, random false positives; no crowd/ignore; all area and maxDet100",
+  "tolerance": 1e-12,
+  "cases": [
+    {
+      "seed": 17,
+      "images": 30,
+      "ground_truth": 73,
+      "predictions": 123,
+      "comparisons": [
+        {
+          "class_id": 1,
+          "iou": 0.5,
+          "implementation": 0.3621293557927222,
+          "pycocotools": 0.36212935579272215,
+          "absolute_difference": 5.551115123125783e-17
+        },
+        {
+          "class_id": 1,
+          "iou": 0.55,
+          "implementation": 0.32878359264497886,
+          "pycocotools": 0.32878359264497886,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.6,
+          "implementation": 0.2823196605374823,
+          "pycocotools": 0.2823196605374823,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.65,
+          "implementation": 0.2823196605374823,
+          "pycocotools": 0.2823196605374823,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.7,
+          "implementation": 0.1824611032531825,
+          "pycocotools": 0.1824611032531824,
+          "absolute_difference": 8.326672684688674e-17
+        },
+        {
+          "class_id": 1,
+          "iou": 0.75,
+          "implementation": 0.011881188118811883,
+          "pycocotools": 0.011881188118811883,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.8,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.85,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.5,
+          "implementation": 0.3556855685568557,
+          "pycocotools": 0.3556855685568557,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.55,
+          "implementation": 0.3331999866653332,
+          "pycocotools": 0.3331999866653332,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.6,
+          "implementation": 0.2708770877087709,
+          "pycocotools": 0.2708770877087709,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.65,
+          "implementation": 0.24285761909524287,
+          "pycocotools": 0.24285761909524287,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.7,
+          "implementation": 0.1126012601260126,
+          "pycocotools": 0.1126012601260126,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.75,
+          "implementation": 0.06810681068106811,
+          "pycocotools": 0.06810681068106811,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.8,
+          "implementation": 0.034203420342034205,
+          "pycocotools": 0.034203420342034205,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.85,
+          "implementation": 0.0014668133480014668,
+          "pycocotools": 0.0014668133480014668,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.5,
+          "implementation": 0.4245083487940631,
+          "pycocotools": 0.4245083487940631,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.55,
+          "implementation": 0.35202203383603664,
+          "pycocotools": 0.35202203383603664,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.6,
+          "implementation": 0.3417169216921692,
+          "pycocotools": 0.3417169216921692,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.65,
+          "implementation": 0.27246753246753247,
+          "pycocotools": 0.27246753246753247,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.7,
+          "implementation": 0.16103260326032603,
+          "pycocotools": 0.16103260326032603,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.75,
+          "implementation": 0.10463892543100463,
+          "pycocotools": 0.10463892543100463,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.8,
+          "implementation": 0.0015841584158415843,
+          "pycocotools": 0.0015841584158415843,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.85,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        }
+      ],
+      "max_absolute_difference": 8.326672684688674e-17
+    },
+    {
+      "seed": 43,
+      "images": 30,
+      "ground_truth": 76,
+      "predictions": 122,
+      "comparisons": [
+        {
+          "class_id": 1,
+          "iou": 0.5,
+          "implementation": 0.27796897336792503,
+          "pycocotools": 0.27796897336792503,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.55,
+          "implementation": 0.19914135951410264,
+          "pycocotools": 0.19914135951410264,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.6,
+          "implementation": 0.1651302105000416,
+          "pycocotools": 0.1651302105000416,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.65,
+          "implementation": 0.10594059405940594,
+          "pycocotools": 0.10594059405940594,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.7,
+          "implementation": 0.07322875144657322,
+          "pycocotools": 0.07322875144657322,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.75,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.8,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.85,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.5,
+          "implementation": 0.3819493710378909,
+          "pycocotools": 0.3819493710378909,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.55,
+          "implementation": 0.3458763745461981,
+          "pycocotools": 0.3458763745461981,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.6,
+          "implementation": 0.20636492220650635,
+          "pycocotools": 0.20636492220650635,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.65,
+          "implementation": 0.14002828854314003,
+          "pycocotools": 0.14002828854314003,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.7,
+          "implementation": 0.09420084865629419,
+          "pycocotools": 0.09420084865629419,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.75,
+          "implementation": 0.06078107810781078,
+          "pycocotools": 0.06078107810781078,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.8,
+          "implementation": 0.04833411912619833,
+          "pycocotools": 0.04833411912619833,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.85,
+          "implementation": 0.005500550055005501,
+          "pycocotools": 0.005500550055005501,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.5,
+          "implementation": 0.3681650527690132,
+          "pycocotools": 0.3681650527690132,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.55,
+          "implementation": 0.34310793167228815,
+          "pycocotools": 0.34310793167228815,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.6,
+          "implementation": 0.26587801462132155,
+          "pycocotools": 0.26587801462132155,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.65,
+          "implementation": 0.14097345869040684,
+          "pycocotools": 0.14097345869040684,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.7,
+          "implementation": 0.09489474997919961,
+          "pycocotools": 0.09489474997919961,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.75,
+          "implementation": 0.039096217314039096,
+          "pycocotools": 0.039096217314039096,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.8,
+          "implementation": 0.008736167734420501,
+          "pycocotools": 0.008736167734420501,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.85,
+          "implementation": 0.0015841584158415843,
+          "pycocotools": 0.0015841584158415843,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        }
+      ],
+      "max_absolute_difference": 0.0
+    },
+    {
+      "seed": 71,
+      "images": 30,
+      "ground_truth": 77,
+      "predictions": 126,
+      "comparisons": [
+        {
+          "class_id": 1,
+          "iou": 0.5,
+          "implementation": 0.4472530292252857,
+          "pycocotools": 0.4472530292252857,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.55,
+          "implementation": 0.3375823607205442,
+          "pycocotools": 0.3375823607205442,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.6,
+          "implementation": 0.2882584842335165,
+          "pycocotools": 0.2882584842335165,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.65,
+          "implementation": 0.1959295929592959,
+          "pycocotools": 0.1959295929592959,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.7,
+          "implementation": 0.1274077407740774,
+          "pycocotools": 0.1274077407740774,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.75,
+          "implementation": 0.10502812781278127,
+          "pycocotools": 0.10502812781278127,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.8,
+          "implementation": 0.036678667866786675,
+          "pycocotools": 0.036678667866786675,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.85,
+          "implementation": 0.0009000900090009002,
+          "pycocotools": 0.0009000900090009002,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 1,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.5,
+          "implementation": 0.4055348778121055,
+          "pycocotools": 0.4055348778121055,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.55,
+          "implementation": 0.31987577136091994,
+          "pycocotools": 0.31987577136091994,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.6,
+          "implementation": 0.270980611574671,
+          "pycocotools": 0.270980611574671,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.65,
+          "implementation": 0.24641869592364649,
+          "pycocotools": 0.24641869592364649,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.7,
+          "implementation": 0.19071909054838387,
+          "pycocotools": 0.19071909054838387,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.75,
+          "implementation": 0.05895589558955896,
+          "pycocotools": 0.05895589558955896,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.8,
+          "implementation": 0.05049504950495049,
+          "pycocotools": 0.05049504950495049,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.85,
+          "implementation": 0.024752475247524754,
+          "pycocotools": 0.024752475247524754,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.9,
+          "implementation": 0.024752475247524754,
+          "pycocotools": 0.024752475247524754,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 2,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.5,
+          "implementation": 0.3431780678067806,
+          "pycocotools": 0.3431780678067806,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.55,
+          "implementation": 0.3431780678067806,
+          "pycocotools": 0.3431780678067806,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.6,
+          "implementation": 0.3431780678067806,
+          "pycocotools": 0.3431780678067806,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.65,
+          "implementation": 0.2343734373437344,
+          "pycocotools": 0.2343734373437344,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.7,
+          "implementation": 0.08766501650165016,
+          "pycocotools": 0.08766501650165016,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.75,
+          "implementation": 0.037953795379537955,
+          "pycocotools": 0.037953795379537955,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.8,
+          "implementation": 0.024189918991899192,
+          "pycocotools": 0.024189918991899192,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.85,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.9,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        },
+        {
+          "class_id": 3,
+          "iou": 0.95,
+          "implementation": 0.0,
+          "pycocotools": 0.0,
+          "absolute_difference": 0.0
+        }
+      ],
+      "max_absolute_difference": 0.0
+    }
+  ],
+  "max_absolute_difference": 8.326672684688674e-17,
+  "passed": true
+}
