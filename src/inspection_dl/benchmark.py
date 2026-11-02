@@ -17,6 +17,7 @@ from torchvision.transforms.functional import pil_to_tensor
 
 from inspection_dl.bundle import load_bundle
 from inspection_dl.metrics import evaluate_detections
+from inspection_dl.train import file_digest, load_manifest, safe_image_path
 
 
 def process_peak_rss() -> int | None:
@@ -82,9 +83,11 @@ def benchmark(
 ) -> dict:
     if count < 10 or threads < 1 or not batch_sizes or min(batch_sizes) < 1:
         raise ValueError("Use at least 10 samples, positive thread count and batch sizes")
+    if batch_sizes[0] != 1:
+        raise ValueError("Batch size one must be first for the parity reference")
     torch.set_num_threads(threads)
     raw_manifest = manifest.read_bytes()
-    spec = json.loads(raw_manifest)
+    spec = load_manifest(manifest)
     records = sorted((r for r in spec["records"] if r["split"] == "val"), key=lambda r: r["id"])[
         :count
     ]
@@ -92,9 +95,14 @@ def benchmark(
         raise ValueError("No validation records")
     tensors, decoding = [], []
     for record in records:
+        image_path = safe_image_path(data_root, record["image"])
+        if file_digest(image_path) != record["sha256"]:
+            raise ValueError("Benchmark source image checksum mismatch")
         started = time.perf_counter()
-        with Image.open(data_root / record["image"]) as image:
+        with Image.open(image_path) as image:
             image = ImageOps.exif_transpose(image).convert("RGB")
+            if image.size != (record["width"], record["height"]):
+                raise ValueError("Benchmark source image dimensions mismatch")
             tensors.append(pil_to_tensor(image).float().div(255))
         decoding.append((time.perf_counter() - started) * 1000)
     output = {
@@ -130,6 +138,10 @@ def benchmark(
             synchronize(device)
             started = time.perf_counter()
             loaded = load_bundle(bundle, device=device)
+            if loaded.metadata.dataset_manifest_sha256 != output["manifest_sha256"]:
+                raise ValueError("Bundle and benchmark manifest digest differ")
+            if [item.model_dump() for item in loaded.metadata.classes] != spec["classes"]:
+                raise ValueError("Bundle and benchmark taxonomy differ")
             synchronize(device)
             load_ms = (time.perf_counter() - started) * 1000
             model = loaded.model.eval()
@@ -195,11 +207,13 @@ def benchmark(
                     else None,
                 }
                 predictions = {}
+                invalid_outputs_rejected = 0
                 for record, item in zip(records, outputs, strict=True):
                     valid = torch.isfinite(item["boxes"]).all(1) & torch.isfinite(item["scores"])
                     valid &= (item["boxes"][:, 2] > item["boxes"][:, 0]) & (
                         item["boxes"][:, 3] > item["boxes"][:, 1]
                     )
+                    invalid_outputs_rejected += int((~valid).sum())
                     predictions[record["id"]] = {
                         key: value[valid].tolist() for key, value in item.items()
                     }
@@ -211,6 +225,7 @@ def benchmark(
                     for key in ["images", "map50", "map50_95", "threshold", "operating"]
                 }
                 result["process_lifetime_peak_rss_bytes"] = process_peak_rss()
+                result["invalid_outputs_rejected"] = invalid_outputs_rejected
                 output["results"].append(result)
                 print(json.dumps(result), flush=True)
             del model, loaded, inputs
