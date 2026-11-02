@@ -1,0 +1,9 @@
+{
+  "status": "no_flip_training_completed_parallel_flip_in_progress",
+  "sequential_wrapper_exit_code": 1,
+  "reason": "After no-flip completed all 12 epochs, the original sequential wrapper encountered the already-running independent flip output directory and stopped at the no-overwrite guard.",
+  "training_failure": false,
+  "holdout_accessed": false,
+  "continuation": "Wait for the independently launched flip process to complete, then use scripts/run_study.py --finalize-only with the exact preregistered settings. That path validates both candidates and identical initialization before selection.",
+  "reference": "execution-policy.json"
+}
