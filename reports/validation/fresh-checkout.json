@@ -1,0 +1,59 @@
+{
+  "checkout_commit": "68fba9a0c02379a6549ce5b452e8b97137088eb6",
+  "command": "git clone --no-local . tmp/release-checkout; CPU ASGI prediction and byte-level evidence validation",
+  "source_loaded_from_checkout": true,
+  "raw_dataset_and_training_checkpoints_absent": true,
+  "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "documentation_inputs_verified": 53,
+  "document_hashes_verified": 3,
+  "readiness_status": 200,
+  "prediction_transport": "in-process ASGI client; actual network HTTP separately verified in real-api.json and real-container.json",
+  "prediction_status": 200,
+  "prediction": {
+    "schema_version": "1",
+    "provider": "visual-inspection-dl",
+    "backend": "trained",
+    "simulated": false,
+    "model_version": "pcb-ind-ssdlite-v1",
+    "taxonomy_version": "pcb-ind-v4-1",
+    "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+    "image": {
+      "width": 300,
+      "height": 300
+    },
+    "coordinate_system": "xyxy_pixels_original_image",
+    "confidence_threshold": 0.2,
+    "nms_threshold": 0.55,
+    "invalid_predictions_rejected": 0,
+    "detections": [
+      {
+        "class_id": 2,
+        "label": "missing_copper",
+        "confidence": 0.3434527814388275,
+        "box": {
+          "x_min": 118.28836059570312,
+          "y_min": 157.72909545898438,
+          "x_max": 177.40167236328125,
+          "y_max": 191.3099822998047
+        }
+      },
+      {
+        "class_id": 4,
+        "label": "spurious_copper",
+        "confidence": 0.3285665512084961,
+        "box": {
+          "x_min": 116.92534637451172,
+          "y_min": 108.71612548828125,
+          "x_max": 185.95518493652344,
+          "y_max": 183.04238891601562
+        }
+      }
+    ],
+    "timing_ms": {
+      "decode_preprocess": 22.457799990661442,
+      "model_inference": 72.27879998390563,
+      "response_postprocess": 0.9135000000242144,
+      "request_total": 96.05819999706
+    }
+  }
+}
