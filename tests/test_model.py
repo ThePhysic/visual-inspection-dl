@@ -5,7 +5,9 @@ import json
 import pytest
 import torch
 from PIL import Image
+from torchvision.ops import box_iou as torchvision_box_iou
 
+from inspection_dl.metrics import box_iou
 from inspection_dl.model import ARCHITECTURE, build_detector, horizontal_flip, image_tensor, load_checkpoint_model
 from inspection_dl.train import DetectionDataset, file_digest, load_manifest, prior_predictions, train_prior
 
@@ -35,8 +37,27 @@ def test_image_tensor_handles_exif_and_rgb_channels():
 def test_real_model_cpu_inference_save_load_parity(tmp_path):
     torch.set_num_threads(2)
     torch.manual_seed(41)
-    model = build_detector(3, pretrained=False, max_detections=100).eval()
+    model = build_detector(3, pretrained=False, max_detections=100)
     image = torch.rand(3, 71, 113)
+    # A real forward/backward/update on explicitly synthetic data verifies that
+    # the detector is trainable, while CI never downloads data or pretrained weights.
+    model.train()
+    for module in model.modules():
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module.eval()
+    output_bias = model.head.classification_head.module_list[0][-1].bias
+    initial_parameter = output_bias.detach().clone()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    losses = model([image], [{"boxes": torch.tensor([[4., 6., 60., 55.]]), "labels": torch.tensor([1])}])
+    total = sum(losses.values())
+    assert torch.isfinite(total) and total.item() > 0
+    total.backward()
+    assert all(torch.isfinite(parameter.grad).all() for parameter in model.parameters() if parameter.grad is not None)
+    assert any(parameter.grad is not None and parameter.grad.abs().sum() > 0 for parameter in model.head.classification_head.parameters())
+    assert any(parameter.grad is not None and parameter.grad.abs().sum() > 0 for parameter in model.head.regression_head.parameters())
+    optimizer.step()
+    assert not torch.equal(initial_parameter, output_bias)
+    model.eval()
     with torch.inference_mode():
         original = model([image])[0]
     checkpoint = tmp_path / "model.pt"
@@ -50,6 +71,16 @@ def test_real_model_cpu_inference_save_load_parity(tmp_path):
     assert (boxes[:, 0] >= 0).all() and (boxes[:, 2] <= 113).all()
     assert (boxes[:, 1] >= 0).all() and (boxes[:, 3] <= 71).all()
     assert set(reloaded["labels"].tolist()) <= {1, 2}
+
+
+def test_numpy_iou_matches_independent_torchvision_reference():
+    generator = torch.Generator().manual_seed(71)
+    starts = torch.rand(20, 2, generator=generator, dtype=torch.float64) * 50
+    ends = starts + torch.rand(20, 2, generator=generator, dtype=torch.float64) * 30 + 1
+    boxes = torch.cat([starts, ends], dim=1)
+    reference = torchvision_box_iou(boxes, boxes)
+    actual = torch.tensor([box_iou(box.tolist(), boxes.tolist()).tolist() for box in boxes], dtype=torch.float64)
+    torch.testing.assert_close(actual, reference, rtol=1e-12, atol=1e-12)
 
 
 def test_manifest_detects_cross_split_leakage_and_invalid_geometry(tmp_path):
