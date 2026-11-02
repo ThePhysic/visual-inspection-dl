@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import pickle
 import platform
 import random
 import subprocess
@@ -222,6 +223,218 @@ def save_checkpoint(path: Path, payload: dict) -> None:
     os.replace(temporary, path)
 
 
+def json_digest(value: dict) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
+
+
+def model_state_digest(state: dict) -> str:
+    """A serialization-independent identity for model tensors and buffers."""
+    digest = hashlib.sha256()
+    for name, value in sorted(state.items()):
+        tensor = value.detach().cpu().contiguous()
+        digest.update(name.encode("utf-8") + b"\0")
+        digest.update(str(tensor.dtype).encode("ascii") + b"\0")
+        digest.update(json.dumps(list(tensor.shape)).encode("ascii") + b"\0")
+        digest.update(tensor.reshape(-1).view(torch.uint8).numpy().tobytes())
+    return digest.hexdigest()
+
+
+def selected_history_row(checkpoint: dict) -> dict:
+    """Validate the committed history and derive its earliest maximum."""
+    history = checkpoint["history"]
+    if not history or len(history) != checkpoint["epoch"] + 1:
+        raise ValueError("checkpoint epoch/history length mismatch")
+    selected, maximum = None, -1.0
+    for epoch, row in enumerate(history):
+        ap = row["validation_map50_95"]
+        if row["epoch"] != epoch or not np.isfinite(ap) or not 0 <= ap <= 1:
+            raise ValueError("checkpoint has invalid validation history")
+        improved = ap > maximum
+        if row["selected"] != improved:
+            raise ValueError("checkpoint selection flags disagree with validation history")
+        if improved:
+            selected, maximum = row, ap
+    if checkpoint["best_ap"] != maximum:
+        raise ValueError("checkpoint best_ap disagrees with canonical validation history")
+    state_digest = model_state_digest(checkpoint["model"])
+    for expected in (
+        checkpoint.get("model_state_sha256"),
+        history[-1].get("model_state_sha256"),
+    ):
+        if expected is not None and expected != state_digest:
+            raise ValueError("checkpoint model state disagrees with its recorded digest")
+    return selected
+
+
+def validation_snapshot(report: dict, predictions: dict, checkpoint: dict) -> dict:
+    return {
+        **report,
+        "epoch": checkpoint["epoch"],
+        "model_state_sha256": model_state_digest(checkpoint["model"]),
+        "predictions_sha256": json_digest(predictions),
+        "manifest_sha256": checkpoint["config"]["manifest_sha256"],
+        "dataset_id": checkpoint["dataset_id"],
+        "taxonomy_version": checkpoint["taxonomy_version"],
+        "training_run_id": checkpoint["training_run_id"],
+    }
+
+
+def reconcile_training_publications(
+    latest: dict,
+    output: Path,
+    model,
+    val_records: list[dict],
+    data_root: str,
+    device: str,
+    batch_size: int,
+    *,
+    verify_metrics: bool = True,
+) -> None:
+    """Reconcile individually atomic files against the committed last.pt.
+
+    A new best can be recovered from last.pt. An older best's missing weights
+    cannot be inferred from metrics and cause an explicit failure. Embedded
+    predictions/reports make interrupted publication repairable without another
+    model pass; legacy checkpoints are validated by an actual validation pass.
+    """
+    chosen = selected_history_row(latest)
+    best_path = output / "best.pt"
+    repairs = []
+
+    def record_repair(path, reason, previous_digest):
+        repairs.append(
+            {
+                "file": path.name,
+                "reason": reason,
+                "previous_sha256": previous_digest,
+                "repaired_sha256": file_digest(path),
+            }
+        )
+
+    previous_best_digest = file_digest(best_path) if best_path.is_file() else None
+    try:
+        best = torch.load(best_path, map_location="cpu", weights_only=True)
+    except (OSError, RuntimeError, ValueError, EOFError, pickle.UnpicklingError):
+        best = None
+    if best is not None and not isinstance(best, dict):
+        best = None
+    if best is not None:
+        for key in (
+            "architecture",
+            "config",
+            "classes",
+            "dataset_id",
+            "taxonomy_version",
+            "training_run_id",
+        ):
+            if best.get(key) != latest.get(key):
+                raise ValueError(f"best checkpoint has a conflicting {key}")
+        selected_history_row(best)
+        if best["history"] != latest["history"][: best["epoch"] + 1]:
+            raise ValueError("best checkpoint is not part of committed training history")
+    repair_best = best is None or best["epoch"] != chosen["epoch"]
+    if repair_best:
+        if latest["epoch"] != chosen["epoch"]:
+            raise ValueError(
+                "canonical older best checkpoint is missing or stale; its weights cannot be recovered from last.pt"
+            )
+        if best is not None and best["epoch"] > chosen["epoch"]:
+            raise ValueError("best checkpoint is ahead of committed last.pt")
+        best = latest
+    if best["epoch"] != selected_history_row(best)["epoch"]:
+        raise ValueError("best checkpoint is not its history's selected model")
+    state_digest = model_state_digest(best["model"])
+    if chosen.get("model_state_sha256", state_digest) != state_digest:
+        raise ValueError("best weights disagree with canonical selected epoch")
+    report = best.get("validation_report")
+    predictions = best.get("validation_predictions")
+    if report is None and predictions is None and best.get("checkpoint_format_version") != "2":
+        # Legacy snapshots lack embedded evidence: verify actual predictions
+        # against history before repairing any scientific report.
+        model.load_state_dict(best["model"], strict=True)
+        predictions = predict_records(model, val_records, data_root, device, batch_size)
+        report = validation_snapshot(
+            evaluate_detections(val_records, predictions, best["classes"]), predictions, best
+        )
+    else:
+        if not isinstance(report, dict) or not isinstance(predictions, dict):
+            raise ValueError("checkpoint has incomplete embedded validation evidence")
+        expected_identity = validation_snapshot({}, predictions, best)
+        for key, value in expected_identity.items():
+            if report.get(key) != value:
+                raise ValueError(f"embedded validation evidence disagrees on {key}")
+        if {record["id"] for record in val_records} != set(predictions):
+            raise ValueError("embedded validation predictions do not cover the committed split")
+        if verify_metrics:
+            recomputed = evaluate_detections(
+                val_records, predictions, best["classes"], report["threshold"]
+            )
+            if any(report.get(key) != value for key, value in recomputed.items()):
+                raise ValueError("embedded validation metrics disagree with saved predictions")
+    if not np.isclose(
+        report["map50_95"], chosen["validation_map50_95"], rtol=0, atol=1e-12
+    ) or not np.isclose(report["map50"], chosen["validation_map50"], rtol=0, atol=1e-12):
+        raise ValueError("best model validation metrics disagree with canonical history")
+    if repair_best:
+        save_checkpoint(best_path, best)
+        record_repair(
+            best_path, "recover canonical new best from committed last.pt", previous_best_digest
+        )
+    report = {**report, "checkpoint_sha256": file_digest(best_path)}
+
+    def publish(path: Path, expected: dict, kind: str):
+        old_digest = file_digest(path) if path.is_file() else None
+        try:
+            old = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            old = None
+        if old == expected:
+            return
+        if kind == "report" and isinstance(old, dict):
+            if (
+                old.get("epoch") == report["epoch"]
+                and old.get("model_state_sha256") == state_digest
+            ):
+                for key in ("map50", "map50_95", "operating", "per_class"):
+                    if key in old and old[key] != report[key]:
+                        raise ValueError(
+                            "published validation report conflicts with the same model's verified metrics"
+                        )
+        if kind == "history" and isinstance(old, dict) and isinstance(old.get("epochs"), list):
+            old_history = old["epochs"]
+            if (
+                len(old_history) > len(latest["history"])
+                or old_history != latest["history"][: len(old_history)]
+            ):
+                raise ValueError("published history conflicts with committed last.pt")
+        atomic_json(path, expected)
+        record_repair(
+            path, "restore missing/stale publication from verified canonical checkpoint", old_digest
+        )
+
+    publish(output / "best_validation.json", report, "report")
+    publish(output / "best_validation_predictions.json", predictions, "predictions")
+    publish(output / "history.json", {"epochs": latest["history"]}, "history")
+    if repairs:
+        log_path = output / "recovery.json"
+        log = (
+            json.loads(log_path.read_text(encoding="utf-8"))
+            if log_path.is_file()
+            else {"recoveries": []}
+        )
+        log["recoveries"].append(
+            {
+                "last_checkpoint_sha256": file_digest(output / "last.pt"),
+                "last_epoch": latest["epoch"],
+                "canonical_best_epoch": chosen["epoch"],
+                "repairs": repairs,
+            }
+        )
+        atomic_json(log_path, log)
+
+
 def train(args) -> dict:
     if args.epochs < 1 or args.batch_size < 1 or args.lr <= 0:
         raise ValueError("epochs, batch size, and learning rate must be positive")
@@ -256,8 +469,8 @@ def train(args) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     if args.resume and Path(args.resume).resolve().parent != output.resolve():
         raise ValueError("resume must continue in the original run directory")
-    if args.resume and not (output / "best.pt").is_file():
-        raise ValueError("resume requires the original best.pt alongside last.pt")
+    if args.resume and Path(args.resume).resolve() != (output / "last.pt").resolve():
+        raise ValueError("resume requires the committed last.pt in the original run directory")
     if (output / "run.json").exists() and not args.resume:
         raise FileExistsError("run already exists; use a new output directory or explicit --resume")
     configuration = {
@@ -298,6 +511,9 @@ def train(args) -> dict:
         previous = torch.load(args.resume, map_location="cpu", weights_only=True)
         if previous["config"] != configuration:
             raise ValueError("resume configuration differs from original run")
+        reconcile_training_publications(
+            previous, output, model, val_records, args.data_root, args.device, args.batch_size
+        )
         model.load_state_dict(previous["model"], strict=True)
         optimizer.load_state_dict(previous["optimizer"])
         scheduler.load_state_dict(previous["scheduler"])
@@ -354,6 +570,15 @@ def train(args) -> dict:
         "holdout_accessed": False,
         "source": source_provenance(),
     }
+    if args.resume:
+        provenance["resumed_from"] = {
+            "checkpoint_sha256": file_digest(args.resume),
+            "epoch": previous["epoch"],
+        }
+    recovery_log = output / "recovery.json"
+    if recovery_log.is_file():
+        provenance["recovery"] = json.loads(recovery_log.read_text(encoding="utf-8"))
+        provenance["recovery_sha256"] = file_digest(recovery_log)
     atomic_json(output / "run.json", provenance)
     if not args.resume:
         save_checkpoint(
@@ -460,6 +685,8 @@ def train(args) -> dict:
             raise ValueError("validation has no ground truth for model selection")
         improved = current_ap > best_ap
         best_ap = max(best_ap, current_ap)
+        state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
+        state_digest = model_state_digest(state)
         row = {
             "epoch": epoch,
             "learning_rate": learning_rate,
@@ -470,11 +697,14 @@ def train(args) -> dict:
             "validation_map50_95": current_ap,
             "seconds": time.perf_counter() - epoch_start,
             "selected": improved,
+            "model_state_sha256": state_digest,
         }
         history.append(row)
         checkpoint = {
+            "checkpoint_format_version": "2",
             "architecture": ARCHITECTURE,
-            "model": {key: value.detach().cpu() for key, value in model.state_dict().items()},
+            "model": state,
+            "model_state_sha256": state_digest,
             "classes": manifest["classes"],
             "taxonomy_version": manifest["taxonomy_version"],
             "dataset_id": manifest["dataset_id"],
@@ -491,13 +721,35 @@ def train(args) -> dict:
             "loader_rng": generator.get_state(),
             "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
         }
+        checkpoint["validation_report"] = validation_snapshot(report, predictions, checkpoint)
+        checkpoint["validation_predictions"] = predictions
         save_checkpoint(output / "last.pt", checkpoint)
         if improved:
             save_checkpoint(output / "best.pt", checkpoint)
-            atomic_json(output / "best_validation.json", report)
+            atomic_json(
+                output / "best_validation.json",
+                {
+                    **checkpoint["validation_report"],
+                    "checkpoint_sha256": file_digest(output / "best.pt"),
+                },
+            )
             atomic_json(output / "best_validation_predictions.json", predictions)
         atomic_json(output / "history.json", {"epochs": history})
         print(json.dumps(row), flush=True)
+    committed_last = torch.load(output / "last.pt", map_location="cpu", weights_only=True)
+    reconcile_training_publications(
+        committed_last,
+        output,
+        model,
+        val_records,
+        args.data_root,
+        args.device,
+        args.batch_size,
+        verify_metrics=False,
+    )
+    if recovery_log.is_file():
+        provenance["recovery"] = json.loads(recovery_log.read_text(encoding="utf-8"))
+        provenance["recovery_sha256"] = file_digest(recovery_log)
     provenance.update(
         {
             "completed": True,

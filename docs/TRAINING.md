@@ -82,8 +82,29 @@ python -m inspection_dl.train --manifest MANIFEST --data-root DATA_ROOT --output
 Resume occurs at epoch boundaries. An interrupted partial epoch is rerun from
 the last completed checkpoint. Exact replay across different runtime/device
 versions is not guaranteed. Existing run outputs are not overwritten by a new
-training invocation without explicit resume. Keep a run's `best.pt` alongside
-`last.pt` when resuming, so its prior best release candidate is preserved.
+training invocation without explicit resume. Resume accepts the committed
+`last.pt` in its original run directory. Each new checkpoint embeds its full
+validation metrics and predictions, their digests, a serialization-independent
+model-state digest, and the authoritative epoch history. The selected model is
+the earliest maximum in that history, and its tensor identity must agree.
+
+Checkpoint files and JSON publications are individually atomic. If a process
+stops after committing `last.pt` but before publishing a new `best.pt`, resume
+can restore that new best from the committed last checkpoint. Missing or stale
+best validation reports, predictions and history are reconciled against the
+verified embedded evidence, even when the final epoch is already complete and
+no additional training steps run. Repairs are recorded with old/new file
+digests in `recovery.json` and retained in `run.json`; every resume also records
+its starting checkpoint digest and epoch. A report that claims the same model
+identity while contradicting its verified metrics causes a clear failure.
+
+Keep an older selected `best.pt` alongside `last.pt`: if that older model's
+weights are absent, the latest checkpoint cannot reconstruct them and resume
+fails instead of substituting the final model. Legacy checkpoints without
+embedded validation evidence require an actual validation pass whose AP agrees
+with the saved selection history; incompatible results fail before completion.
+These are process-interruption recovery guarantees, not power-loss durability
+or concurrent-writer guarantees.
 
 A failed initial PCB-IND attempt used learning rate 0.001 and AMP and stopped
 with a nonfinite forward loss before completing its first epoch. Its records
@@ -126,7 +147,7 @@ the training process, original checkpoint, optimizer state or history. Acquire
 and prepare the documented dataset, then use the released bundle directory:
 
 ```powershell
-python -m inspection_dl.evaluate --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind-ready --bundle releases/pcb-ind-v1 --split val --output reports/release-recheck --device cpu
+python -m inspection_dl.evaluate --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind --bundle releases/pcb-ind-ssdlite-v1 --split val --output tmp/recomputed-val --device cpu
 ```
 
 Use the actual release directory listed in the README. `--bundle` and
