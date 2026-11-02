@@ -142,6 +142,7 @@ def load_study(args) -> dict:
     study, release = Path(args.study), Path(args.release)
     required = [
         study / "selection.json",
+        study / "initialization-parity.json",
         study / "validation/report.json",
         study / "validation/robustness.json",
         study / "holdout/report.json",
@@ -159,6 +160,11 @@ def load_study(args) -> dict:
     manifest = evidence.read(args.manifest)
     audit = evidence.read(Path(args.manifest).with_name(Path(args.manifest).stem + ".audit.json"))
     preregistration = evidence.read(study / "preregistration.json")
+    initialization = evidence.read(study / "initialization-parity.json")
+    if initialization.get("identical_initial_model_tensors") is not True:
+        raise ValueError("Controlled comparison lacks exact initial tensor parity")
+    if initialization.get("tensor_count", 0) < 1:
+        raise ValueError("Initial tensor parity evidence is empty")
     selection = evidence.read(study / "selection.json")
     validation = evidence.read(study / "validation/report.json")
     robustness = evidence.read(study / "validation/robustness.json")
@@ -174,12 +180,20 @@ def load_study(args) -> dict:
     acquisition = evidence.read("data/manifests/pcb-ind-v4.acquisition.json")
     annotation_check = evidence.read("reports/validation/annotation-crosscheck.json")
     metric_check = evidence.read("reports/metric-reference.json")
+    environment_report = evidence.read("reports/environment.json")
+    manifest_portability = evidence.read("reports/validation/manifest-portability.json")
     manifest_hash = evidence.files[
         evidence.path(args.manifest).relative_to(evidence.root).as_posix()
     ]
     content = {key: value for key, value in manifest.items() if key != "manifest_digest"}
     if hashlib.sha256(canonical(content)).hexdigest() != manifest["manifest_digest"]:
         raise ValueError("Canonical manifest content digest mismatch")
+    if (
+        manifest_portability.get("byte_identical") is not True
+        or manifest_portability["working_sha256"] != manifest_hash
+        or manifest_portability["committed_blob_sha256"] != manifest_hash
+    ):
+        raise ValueError("Committed and working manifest bytes differ from training provenance")
     for item in (preregistration, selection, validation, holdout, benchmark):
         if item["manifest_sha256"] != manifest_hash:
             raise ValueError("Study evidence refers to inconsistent manifests")
@@ -234,12 +248,22 @@ def load_study(args) -> dict:
     if evidence.files[(release / "evaluation.json").as_posix()] != metadata["evaluation_sha256"]:
         raise ValueError("Released evaluation digest mismatch")
     runs, histories = [], []
+    expected_configuration = {
+        "epochs": preregistration["epochs_per_run"],
+        "batch_size": preregistration["batch_size"],
+        "learning_rate": preregistration["learning_rate"],
+        "seed": preregistration["seed"],
+        "amp": preregistration["amp"],
+        "architecture": preregistration["architecture"],
+    }
     for candidate in selection["candidates"]:
         location = study / "experiments" / candidate["variant"]
         run = evidence.read(location / "run.json")
         history = evidence.read(location / "history.json")["epochs"]
         if not run.get("completed") or len(history) != run["config"]["epochs"]:
             raise ValueError("A comparison run is incomplete")
+        if any(run["config"].get(key) != value for key, value in expected_configuration.items()):
+            raise ValueError("A completed run differs from the preregistered configuration")
         if run["holdout_accessed"] or run["config"]["manifest_sha256"] != manifest_hash:
             raise ValueError("Training protocol or manifest provenance is inconsistent")
         if candidate["validation_map50_95"] != run["best_validation_map50_95"]:
@@ -254,6 +278,8 @@ def load_study(args) -> dict:
         histories.append(history)
     if len(runs) != 2:
         raise ValueError("This report generator expects the preregistered two-variant study")
+    if set(initialization["candidates"]) != {run["run_id"] for run in runs}:
+        raise ValueError("Initial tensor parity evidence refers to different training runs")
     comparable = [
         {key: value for key, value in run["config"].items() if key != "horizontal_flip_probability"}
         for run in runs
@@ -486,6 +512,10 @@ budget. Only horizontal reflection probability differs. BatchNorm running
 statistics are frozen while trainable affine parameters are fine-tuned.
 Training uses {"AMP" if config["amp"] else "FP32"}; the earlier failed AMP experiment remains separately reported.
 There is one training seed, so the comparison does not establish seed-robust gains.
+The [initialization check](../{study}/initialization-parity.json) confirms exact
+CPU equality of every initial model parameter and buffer across both runs
+({c["initialization"]["tensor_count"]} tensors); matching seeds alone are not used
+as evidence that initialization was identical.
 
 {table(["Variant", "Completed epochs", "Best epoch (1-based)", "Validation AP50:.95", "Epoch time total, min", "Skipped AMP steps"], candidates)}
 
@@ -519,7 +549,10 @@ and [PR/score plots](../{study}/holdout/precision_recall_and_scores.png).
 ## Local performance and bounded optimization
 
 Hardware: **{benchmark["hardware"]["gpu"]}**; CPU identification:
-`{benchmark["hardware"]["cpu"]}`; platform `{benchmark["hardware"]["platform"]}`.
+**{c["environment_report"]["hardware"]["cpu"].strip()}**; platform `{benchmark["hardware"]["platform"]}`.
+The [hardware record](../reports/environment.json) reports
+{number(c["environment_report"]["hardware"]["ram_bytes"] / 2**30, 2)}GiB physical RAM
+and GPU model/VRAM/driver `{c["environment_report"]["hardware"]["gpu"]}`.
 The CPU path uses {benchmark["hardware"]["cpu_threads"]} threads. The benchmark
 uses the first {len(benchmark["sample_ids"])} sorted validation IDs, FP32,
 concurrency1, and three untimed warm-up batches for each configuration.
@@ -532,11 +565,16 @@ This measures local warmed inference without HTTP/network overhead.
 {" ".join(improvements)} The optimization changes batch policy only; these
 quality comparisons use identical images and the same released weights.
 Batch latency is not per-image request latency. Forward timing includes resize,
-normalization, model execution, NMS and coordinate restoration. Decoding/tensor
+normalization, model execution, NMS and coordinate restoration, using preloaded
+device inputs. Its throughput excludes input transfer and CPU output materialization.
+Decoding/tensor
 conversion p50/p95 are {number(benchmark["decode_tensor_conversion"]["p50_ms"], 3)}/
 {number(benchmark["decode_tensor_conversion"]["p95_ms"], 3)}ms; transfer times are
-reported separately in [benchmark JSON](../{study}/benchmark.json). Bundle load
-times do not establish cold-cache startup. p99 is omitted below1000 timed batches.
+reported separately in [benchmark JSON](../{study}/benchmark.json). Decode/tensor
+timing includes image-file I/O and excludes preceding checksum verification.
+Bundle load timing includes integrity validation and model construction, but
+excludes Python imports and initial CUDA context creation; cache state is uncontrolled.
+It does not establish full process startup. p99 is omitted below1000 timed batches.
 GPU memory is PyTorch peak allocated/reserved, excluding driver/other processes;
 process RSS is a lifetime high-water mark including preloaded data and previous
 configurations. These measurements are not production SLA guarantees.
@@ -887,6 +925,11 @@ Raw data remains outside Git. Verify the reproduced canonical manifest digest
 against **`{c["manifest"]["manifest_digest"]}`**. JSON file SHA256 is a separate
 byte-level identity, while canonical content hashing ignores formatting.
 Frozen outputs refuse conflicting overwrites.
+Git attributes preserve checksummed JSON bytes across Windows/Linux checkouts.
+A discovered CRLF-to-LF Git normalization mismatch was corrected without changing
+the frozen dataset content or bytes used by training; the retained
+[portability check](../reports/validation/manifest-portability.json) confirms that
+the committed blob and working manifest have the same training-bound file SHA256.
 
 The independent source-format audit checks original COCO/YOLO class and coordinate
 semantics, all accepted image and annotation hashes, decoded dimensions and EXIF.
@@ -905,6 +948,8 @@ Fresh study/release IDs preserve existing evidence. The runner performs both
 augmentation variants, selects the best validation AP50:.95 checkpoint, selects a
 validation micro-F1 threshold, writes the decision, evaluates the final holdout,
 packages a bundle, and benchmarks CPU/GPU batch1 versus4 on an identical subset.
+Before selection, it verifies exact initial parameter/buffer equality and records
+`initialization-parity.json`, including tensor count and an initial-tensor digest.
 Individual commands and epoch-boundary resume are documented in [TRAINING.md](TRAINING.md).
 
 {table(["Run", "Seed", "Epochs", "Batch", "LR", "Horizontal flip p", "AMP", "Elapsed min"], configs)}
@@ -960,17 +1005,23 @@ attributed sample image from a second terminal:
 curl.exe --fail-with-body -H "Content-Type: image/jpeg" --data-binary "@tests/fixtures/pcb-ind/5810_t_007.jpg" http://127.0.0.1:8000/v1/predict
 ```
 
-To independently recompute selected-checkpoint evaluation from retained local
-training artifacts, choose a fresh output directory:
+To repeat evaluation from a fresh clone, use the released bundle and acquired
+dataset directly, with a fresh output directory. This CPU validation-split recheck
+does not require any ignored training checkpoint or optimizer state:
 
 ```powershell
-.venv-gpu/Scripts/python.exe -m inspection_dl.evaluate --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind --checkpoint {selected["checkpoint"]} --output reports/recomputed-holdout --split test --final-holdout --threshold {c["selection"]["threshold"]} --device cuda
+.venv-cpu/Scripts/python.exe -m inspection_dl.evaluate --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind --bundle {release} --output reports/release-validation-recheck --split val --device cpu
 .venv-gpu/Scripts/python.exe -m inspection_dl.benchmark --bundle {release} --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind --output reports/recomputed-benchmark.json --samples 100 --devices cpu cuda --batch-sizes 1 4
 ```
 
-This recomputation is not a new unseen holdout. The released evaluation report
-supports standalone inspection without retaining the training checkpoint;
-full training is reproducible through the fresh-study command. Raw data and
+Bundle evaluation uses the release's recorded confidence threshold by default
+and reports its artifact digest, weights hash and model version as the evaluated
+identity. The original training-checkpoint digest remains historical provenance;
+it is not presented as an input file when evaluating a bundle. Evaluation reports
+also record the evaluator's actual Git revision and source-package hash separately
+from the training source. The original study's final holdout remains its frozen
+report; this repeatability command evaluates validation images.
+Full training is reproducible through the fresh-study command. Raw data and
 optimizer checkpoints are ignored by Git; the trained release weights are retained
 for direct inference. GPU training, full-data evaluation and local benchmarks
 were measured separately from ordinary CPU CI.
@@ -1021,6 +1072,7 @@ def main() -> None:
             "requirements-cpu.txt",
             "requirements-gpu.txt",
             "pyproject.toml",
+            ".gitattributes",
         ):
             context["evidence"].include(path)
         documents = {
