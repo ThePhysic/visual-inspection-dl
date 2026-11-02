@@ -1,0 +1,7 @@
+{
+  "training_schedule": "The no-flip run started first; the independent flip run was subsequently launched in a second process while no-flip remained active.",
+  "reason": "Measured single-run GPU allocation was about 1.3 GB on an 8 GB GPU, permitting bounded two-process training to shorten wall-clock time.",
+  "configuration_changes": "None: both candidates use the preregistered seed42, full precision, learning rate0.0003, batch8,12epochs, fixed manifest and architecture. They differ only in horizontal-flip augmentation.",
+  "resource_interpretation": "Training epoch times can reflect contention between processes; standalone release CPU/GPU benchmarks run only after both training processes finish.",
+  "finalization": "The original sequential orchestrator will stop if it encounters the separately created flip run instead of overwriting it. scripts/run_study.py --finalize-only verifies both completed candidates against preregistration before copying evidence and performing validation selection and final holdout evaluation."
+}

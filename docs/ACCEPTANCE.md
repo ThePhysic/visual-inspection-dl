@@ -7,7 +7,7 @@ repository. The existing application is outside this milestone.
 
 | Deliverable | Implementation and evidence |
 | --- | --- |
-| Original-source licensed dataset and taxonomy | `docs/DATASET.md`, `data/manifests/pcb-ind-v4.source.json`, `scripts/acquire_data.py` |
+| Original-source licensed dataset and taxonomy | `docs/DATASET.md`, `data/manifests/pcb-ind-v4.acquisition.json`, `scripts/acquire_data.py` |
 | Validated manifest, exclusions, duplicates and source groups | `src/inspection_dl/data.py`, committed manifest/audit, `tests/test_data.py` |
 | Independent source-format verification | `scripts/crosscheck_annotations.py`, `reports/validation/annotation-crosscheck.json` |
 | Real PyTorch transfer learning and controlled comparison | `src/inspection_dl/model.py`, `train.py`, `scripts/run_study.py`, per-run configs/histories under `reports/rtx4060-study-v2/experiments/` |

@@ -37,6 +37,11 @@ def main() -> None:
     parser.add_argument("--amp", action="store_true", help="explicit mixed-precision experiment")
     parser.add_argument("--study-id", default="rtx4060-study-v1")
     parser.add_argument("--release", default="pcb-ind-ssdlite-v1")
+    parser.add_argument(
+        "--finalize-only",
+        action="store_true",
+        help="verify and finish an existing study whose two training runs completed",
+    )
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1 or args.learning_rate <= 0:
         parser.error("epochs, batch size and learning rate must be positive")
@@ -47,7 +52,7 @@ def main() -> None:
                 "study and release IDs require lowercase letters, digits, hyphens or underscores"
             )
     reports = Path("reports") / args.study_id
-    if reports.exists():
+    if reports.exists() and not args.finalize_only:
         raise FileExistsError("Use a fresh study ID; recorded studies are never overwritten")
     common = ["--manifest", str(args.manifest), "--data-root", str(args.data_root)]
 
@@ -77,7 +82,23 @@ def main() -> None:
         "optimization": "batch size 1 vs 4 on same validation subset, CPU and GPU; quality measured for both",
         "budget": "two bounded runs; no test-guided retraining or unbounded search",
     }
-    write_new(reports / "preregistration.json", preregistration)
+    if args.finalize_only:
+        previous = read(reports / "preregistration.json")
+        for key in (
+            "study_id",
+            "manifest_sha256",
+            "epochs_per_run",
+            "batch_size",
+            "seed",
+            "architecture",
+            "device",
+            "learning_rate",
+            "amp",
+        ):
+            if previous.get(key) != preregistration[key]:
+                raise ValueError(f"Finalization differs from preregistered {key}")
+    else:
+        write_new(reports / "preregistration.json", preregistration)
     candidates = []
     for variant in ("no-flip", "flip"):
         output = Path("runs") / f"{args.study_id}-{variant}"
@@ -99,8 +120,26 @@ def main() -> None:
             options.append("--amp")
         if variant == "flip":
             options.append("--horizontal-flip")
-        run("inspection_dl.train", *common, *options)
+        if not args.finalize_only:
+            run("inspection_dl.train", *common, *options)
         record = read(output / "run.json")
+        expected = {
+            "epochs": args.epochs,
+            "batch_size": args.batch_size,
+            "seed": 42,
+            "learning_rate": args.learning_rate,
+            "amp": args.amp,
+            "manifest_sha256": digest(args.manifest),
+            "horizontal_flip_probability": 0.5 if variant == "flip" else 0.0,
+        }
+        if not record.get("completed") or any(
+            record["config"].get(key) != value for key, value in expected.items()
+        ):
+            raise ValueError(
+                "Candidate is incomplete or differs from the preregistered configuration"
+            )
+        if digest(output / "best.pt") != record["best_checkpoint_sha256"]:
+            raise ValueError("Candidate checkpoint integrity mismatch")
         candidates.append(
             {
                 "variant": variant,
@@ -111,7 +150,7 @@ def main() -> None:
             }
         )
         destination = reports / "experiments" / variant
-        destination.mkdir(parents=True)
+        destination.mkdir(parents=True, exist_ok=True)
         for filename in (
             "run.json",
             "history.json",
@@ -120,7 +159,11 @@ def main() -> None:
             "best_validation.json",
             "best_validation_predictions.json",
         ):
-            shutil.copyfile(output / filename, destination / filename)
+            if (destination / filename).exists():
+                if digest(output / filename) != digest(destination / filename):
+                    raise ValueError("Existing experiment evidence differs; refusing overwrite")
+            else:
+                shutil.copyfile(output / filename, destination / filename)
     selected = max(candidates, key=lambda item: item["validation_map50_95"])
     run(
         "inspection_dl.evaluate",
