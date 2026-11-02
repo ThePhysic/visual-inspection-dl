@@ -52,7 +52,9 @@ letterboxing, normalizes with mean/std [0.5,0.5,0.5], and rescales predicted
 boxes to the original oriented dimensions during evaluation. Boxes are
 `[x_min,y_min,x_max,y_max]` pixels with exclusive upper bounds. Invalid target
 geometry, changed dimensions and checksum mismatches fail. Model outputs with
-nonfinite or zero-area boxes are omitted rather than included as detections.
+nonfinite or zero-area boxes are omitted rather than included as detections;
+`invalid_predictions_rejected` records the count per image and in every
+aggregate evaluation report so such exclusions remain visible.
 
 ## Portable run evidence and resume
 

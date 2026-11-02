@@ -64,6 +64,7 @@ def per_image_errors(records: list[dict], predictions: dict, threshold: float) -
                 "overlapping_prediction_pairs": overlap_count,
                 "ground_truth": len(record["boxes"]),
                 "predictions": len(selected),
+                "invalid_predictions_rejected": prediction.get("invalid_predictions_rejected", 0),
             }
         )
     return results
@@ -235,6 +236,7 @@ def robustness_report(model, records, root, classes, device, threshold, limit=10
                 "boxes": boxes[valid].tolist(),
                 "labels": labels[valid].tolist(),
                 "scores": scores[valid].tolist(),
+                "invalid_predictions_rejected": int((~valid).sum()),
             }
         reports[name] = evaluate_detections(chosen, predictions, classes, threshold)
     return {

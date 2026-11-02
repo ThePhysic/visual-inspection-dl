@@ -167,6 +167,10 @@ def evaluate_detections(
     return {
         "definition": "101-point interpolated class-aware AP; IoU .50:.05:.95; no crowd/ignore; max100 detections/image; absent GT classes excluded from macro AP",
         "images": len(records),
+        "invalid_predictions_rejected": sum(
+            predictions.get(record["id"], {}).get("invalid_predictions_rejected", 0)
+            for record in records
+        ),
         "iou_thresholds": IOU_THRESHOLDS,
         "threshold": threshold,
         "map50": float(np.mean([item["ap50"] for item in per_class if item["ap50"] is not None]))

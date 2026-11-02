@@ -174,6 +174,7 @@ def predict_records(
                 "boxes": boxes[valid].tolist(),
                 "labels": labels[valid].tolist(),
                 "scores": scores[valid].tolist(),
+                "invalid_predictions_rejected": int((~valid).sum()),
             }
     return predictions
 
