@@ -37,11 +37,11 @@ source identity, and full limitations. The raw evidence is in
 [the study directory](reports/rtx4060-study-v2).
 
 On the recorded Ryzen 9 7940HS / RTX 4060 laptop, warmed forward-pipeline p50
-latency on 100 validation images was 55.03 ms on CPU and 32.49 ms on GPU at batch
-size one. GPU batching increased measured forward throughput from 30.65 to 61.47
+latency on 100 validation images was 54.38 ms on CPU and 36.79 ms on GPU at batch
+size one. GPU batching increased measured forward throughput from 28.16 to 56.93
 images/s with small numerical/postprocessing differences. These measurements use
 preloaded inputs and exclude HTTP, transfer, and CPU output materialization;
-[the benchmark record](reports/rtx4060-study-v2/benchmark.json) defines timing,
+[the release-bound benchmark record](reports/rtx4060-study-v2/benchmark-release.json) defines timing,
 sample counts, quality differences, and memory boundaries.
 
 ## Serve the trained model

@@ -280,7 +280,7 @@ def main() -> None:
         str(bundle),
         *common,
         "--output",
-        str(reports / "benchmark.json"),
+        str(reports / "benchmark-release.json"),
         "--samples",
         "100",
         "--devices",
