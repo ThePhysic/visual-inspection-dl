@@ -1,0 +1,12 @@
+.git
+.venv
+data
+runs
+artifacts
+reports
+tmp
+__pycache__
+.pytest_cache
+*.pt
+*.zip
+.env
