@@ -1,0 +1,124 @@
+{
+  "convention": "truth left; actual model predictions right; deterministic sample coverage and maximum-error examples",
+  "examples": [
+    {
+      "image_id": "001603633495e00bdde3",
+      "file": "examples/sample_00.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "18cd75c3fd8fef7f6b55",
+      "file": "examples/sample_01.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "312b35936bf7fe6043d3",
+      "file": "examples/sample_02.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "4c35813950b33bd73524",
+      "file": "examples/sample_03.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "641634b13a789fa4ade8",
+      "file": "examples/sample_04.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "7c0898c8cc8e90ea54b3",
+      "file": "examples/sample_05.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "90366f22d8a360053624",
+      "file": "examples/sample_06.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "a40383be69e00b5cbcba",
+      "file": "examples/sample_07.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "be009a51141157be197c",
+      "file": "examples/sample_08.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "d2f1e136b4635eb1a9cf",
+      "file": "examples/sample_09.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "eb14bcfa42658c98dc39",
+      "file": "examples/sample_10.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "ffe13ebcc5de28620ac4",
+      "file": "examples/sample_11.jpg",
+      "selection": [
+        "evenly spaced sorted split sample"
+      ]
+    },
+    {
+      "image_id": "16101cfb88bb7f77909c",
+      "file": "examples/sample_12.jpg",
+      "selection": [
+        "maximum tp in split (13)"
+      ]
+    },
+    {
+      "image_id": "4700eb7cdd4b83400c18",
+      "file": "examples/sample_13.jpg",
+      "selection": [
+        "maximum fp in split (5)"
+      ]
+    },
+    {
+      "image_id": "cf18f29e21f446ea28fc",
+      "file": "examples/sample_14.jpg",
+      "selection": [
+        "maximum fn in split (6)"
+      ]
+    },
+    {
+      "image_id": "dff47a68647dc1a34630",
+      "file": "examples/sample_15.jpg",
+      "selection": [
+        "maximum poor_localization_candidates in split (3)"
+      ]
+    },
+    {
+      "image_id": "deb2a80f42394090aaf0",
+      "file": "examples/sample_16.jpg",
+      "selection": [
+        "maximum overlapping_prediction_pairs in split (3)"
+      ]
+    }
+  ]
+}

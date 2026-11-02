@@ -1,0 +1,13 @@
+{
+  "command": ".venv-cpu/Scripts/python.exe -m pytest -q --junitxml=tmp/final-cpu-tests.xml",
+  "source_revision": "2fef9e671f2dd1f1bed539f07e94564690ad5a0d",
+  "python": "3.12.15",
+  "torch": "2.7.1+cpu",
+  "torchvision": "0.22.1+cpu",
+  "cuda_available": false,
+  "tests": 122,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 33.422
+}

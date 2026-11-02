@@ -1,0 +1,10 @@
+{
+  "identical_initial_model_tensors": true,
+  "tensor_count": 476,
+  "initial_tensor_digest": "aff11349ac29a2b13cf66bef36372153391fd2fbafdba8b0cf4e75f02a497d29",
+  "candidates": [
+    "rtx4060-study-v2-no-flip",
+    "rtx4060-study-v2-flip"
+  ],
+  "definition": "Exact CPU equality of every initialized parameter and buffer; digest includes sorted name, dtype, shape and bytes"
+}

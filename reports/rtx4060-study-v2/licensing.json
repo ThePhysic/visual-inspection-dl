@@ -1,0 +1,22 @@
+{
+  "project_code": "MIT; excludes dataset images and model weights",
+  "dataset": {
+    "name": "PCB-IND v4",
+    "authors": "Hao Yan and PCB-IND authors; see saved Zenodo metadata",
+    "source": "https://zenodo.org/records/19723114",
+    "license": "CC-BY-4.0"
+  },
+  "framework_code": {
+    "torchvision": "BSD-3-Clause",
+    "source": "https://github.com/pytorch/vision/tree/v0.22.1"
+  },
+  "model_use": "Noncommercial research and personal portfolio evaluation; no assertion of unrestricted commercial weight rights. TorchVision pretrained-model terms and underlying COCO image terms remain applicable.",
+  "pretrained_terms": "https://github.com/pytorch/vision/blob/v0.22.1/README.md#pre-trained-model-license",
+  "coco_terms": "https://cocodataset.org/#termsofuse",
+  "notices": "docs/THIRD_PARTY.md",
+  "pretrained_initialization": {
+    "url": "https://download.pytorch.org/models/ssdlite320_mobilenet_v3_large_coco-a79551df.pth",
+    "sha256": "a79551df90c79834bcd3bb3845ef9d966b5449a3a9b2833ae8404778ca5d65d2",
+    "initialization": "COCO backbone and box regressor; new normal(0,.03) classification head"
+  }
+}

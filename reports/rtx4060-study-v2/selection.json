@@ -1,0 +1,28 @@
+{
+  "candidates": [
+    {
+      "variant": "no-flip",
+      "run_id": "rtx4060-study-v2-no-flip",
+      "validation_map50_95": 0.2255992850299994,
+      "checkpoint": "runs\\rtx4060-study-v2-no-flip\\best.pt",
+      "checkpoint_sha256": "f110224d23aa0d5e7e9e0ae2e62a9cddbaabd5e8efdfeea01df7b209e7a2ac3c"
+    },
+    {
+      "variant": "flip",
+      "run_id": "rtx4060-study-v2-flip",
+      "validation_map50_95": 0.251315944261744,
+      "checkpoint": "runs\\rtx4060-study-v2-flip\\best.pt",
+      "checkpoint_sha256": "c6d6532da7201fd8f8ba182117e4e92eca5562578b9592bf50b9a44c8670227b"
+    }
+  ],
+  "selected": {
+    "variant": "flip",
+    "run_id": "rtx4060-study-v2-flip",
+    "validation_map50_95": 0.251315944261744,
+    "checkpoint": "runs\\rtx4060-study-v2-flip\\best.pt",
+    "checkpoint_sha256": "c6d6532da7201fd8f8ba182117e4e92eca5562578b9592bf50b9a44c8670227b"
+  },
+  "threshold": 0.2,
+  "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "decision_basis": "validation only; this file written before final holdout access"
+}

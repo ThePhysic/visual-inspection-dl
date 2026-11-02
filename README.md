@@ -5,12 +5,44 @@ data, controlled experiments, held-out evaluation, a versioned trained model, an
 standalone local FastAPI service. Training and evaluation use explicit commands;
 users submit image bytes to the API and receive typed boxes, scores, and provenance.
 
-The dataset is the authors' **PCB-IND v4**, real industrial AOI images licensed CC BY
+The dataset is the authors' [**PCB-IND v4**](https://zenodo.org/records/19723114), real industrial AOI images licensed CC BY
 4.0. The frozen manifest has **4,788 images: 3,352 train / 714 validation / 722 test**.
 Source-prefix proxies and detected visual duplicates stay within one split. One
 malformed annotation is explicitly excluded; 127 negative images are retained.
 See [the dataset audit](docs/DATASET.md) for provenance, checksums, label mapping,
 exclusions, rare classes, and limits of inferred acquisition groups.
+
+## Measured results
+
+The frozen **722-image holdout** was evaluated after validation-only checkpoint
+and threshold selection. Both methods below use the same test images and metric
+definition; the operating threshold is **0.20**.
+
+| Metric | Train-derived box-prior baseline | Fine-tuned SSDLite |
+| --- | ---: | ---: |
+| AP at IoU 0.50 | 2.09% | 44.17% |
+| Mean AP across IoU 0.50–0.95 | 1.03% | 27.19% |
+| Micro precision at IoU 0.50 | 4.43% | 53.31% |
+| Micro recall at IoU 0.50 | 7.40% | 56.76% |
+
+The model misses defects and produces false alarms. The rare `open` class is
+particularly weak: one of 18 test instances was detected at this operating point.
+These results support a reproducible research demonstration with human review;
+they do not establish manufacturing deployment fitness or calibrated probabilities.
+
+The [model card](docs/MODEL_CARD.md), [error analysis](docs/ERROR_ANALYSIS.md),
+and [reproducibility report](docs/REPRODUCIBILITY.md) contain per-class results,
+group-bootstrap intervals, representative and difficult images, robustness checks,
+source identity, and full limitations. The raw evidence is in
+[the study directory](reports/rtx4060-study-v2).
+
+On the recorded Ryzen 9 7940HS / RTX 4060 laptop, warmed forward-pipeline p50
+latency on 100 validation images was 55.03 ms on CPU and 32.49 ms on GPU at batch
+size one. GPU batching increased measured forward throughput from 30.65 to 61.47
+images/s with small numerical/postprocessing differences. These measurements use
+preloaded inputs and exclude HTTP, transfer, and CPU output materialization;
+[the benchmark record](reports/rtx4060-study-v2/benchmark.json) defines timing,
+sample counts, quality differences, and memory boundaries.
 
 ## Serve the trained model
 
