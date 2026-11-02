@@ -3,3 +3,6 @@
 *.jpg binary
 *.jpeg binary
 *.pt binary
+# Preserve checksum-bearing evidence bytes across Windows and Linux checkouts.
+*.json -text
+tests/fixtures/pcb-ind/*.txt -text
