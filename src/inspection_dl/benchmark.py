@@ -17,7 +17,32 @@ from torchvision.transforms.functional import pil_to_tensor
 
 from inspection_dl.bundle import load_bundle
 from inspection_dl.metrics import evaluate_detections
-from inspection_dl.train import file_digest, load_manifest, safe_image_path
+from inspection_dl.train import file_digest, load_manifest, safe_image_path, source_provenance
+
+
+def bind_model_identity(output: dict, metadata) -> dict:
+    """Bind all measured configurations to one validated immutable release."""
+    identity = {
+        key: getattr(metadata, key)
+        for key in (
+            "artifact_digest",
+            "weights_sha256",
+            "model_version",
+            "taxonomy_version",
+            "dataset_id",
+        )
+    }
+    classes = [item.model_dump() for item in metadata.classes]
+    if "artifact_digest" in output:
+        if (
+            any(output[key] != value for key, value in identity.items())
+            or output["classes"] != classes
+        ):
+            raise ValueError("Model identity changed between benchmark configurations")
+    else:
+        output.update(identity)
+        output["classes"] = classes
+    return identity
 
 
 def process_peak_rss() -> int | None:
@@ -107,6 +132,7 @@ def benchmark(
         decoding.append((time.perf_counter() - started) * 1000)
     output = {
         "schema_version": "1",
+        "benchmark_source": source_provenance(),
         "hardware": {
             "platform": platform.platform(),
             "cpu": platform.processor(),
@@ -145,6 +171,12 @@ def benchmark(
                 raise ValueError("Bundle and benchmark manifest digest differ")
             if [item.model_dump() for item in loaded.metadata.classes] != spec["classes"]:
                 raise ValueError("Bundle and benchmark taxonomy differ")
+            if (
+                loaded.metadata.dataset_id != spec["dataset_id"]
+                or loaded.metadata.taxonomy_version != spec["taxonomy_version"]
+            ):
+                raise ValueError("Bundle and benchmark dataset/taxonomy identity differ")
+            identity = bind_model_identity(output, loaded.metadata)
             synchronize(device)
             load_ms = (time.perf_counter() - started) * 1000
             model = loaded.model.eval()
@@ -191,6 +223,7 @@ def benchmark(
                                 parity[key], float((first[name] - second[name]).abs().max())
                             )
                 result = {
+                    **identity,
                     "device": device,
                     "precision": "float32",
                     "batch_size": batch_size,
@@ -248,6 +281,10 @@ def main() -> None:
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--threads", type=int, default=4)
     args = parser.parse_args()
+    if args.output.exists():
+        raise FileExistsError(
+            "Benchmark output exists; use a fresh path to preserve prior evidence"
+        )
     results = benchmark(
         args.bundle,
         args.manifest,
@@ -258,7 +295,8 @@ def main() -> None:
         args.threads,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(results, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    with args.output.open("xb") as stream:
+        stream.write((json.dumps(results, indent=2, allow_nan=False) + "\n").encode("utf-8"))
 
 
 if __name__ == "__main__":
