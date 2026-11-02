@@ -60,6 +60,28 @@ def test_cross_split_group_and_hash_leakage():
             validate_manifest(manifest)
 
 
+def test_manifest_digest_detects_modified_annotations():
+    manifest = manifest_fixture()
+    manifest["manifest_digest"] = hashlib.sha256(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    validate_manifest(manifest)
+    manifest["records"][0]["boxes"][0][2] = 90
+    with pytest.raises(ValueError, match="digest mismatch"):
+        validate_manifest(manifest)
+
+
+def test_filename_prefix_proxy_connects_source_patches():
+    records = [{"id": "a", "source_group": "prefix-1"},
+               {"id": "b", "source_group": "prefix-1"},
+               {"id": "c", "source_group": "prefix-2"}]
+    images = [Image.new("RGB", (32, 32), color) for color in ("red", "green", "blue")]
+    groups, audit = duplicate_groups(records, [_fingerprint(image) for image in images])
+    assert groups[0] == groups[1]
+    assert groups[0] != groups[2]
+    assert audit["source_prefix_group_count"] == 2
+
+
 def test_duplicate_groups_use_decoded_pixels_and_near_brightness():
     pattern = np.tile(np.arange(64, dtype=np.uint8), (64, 1))
     images = [Image.fromarray(pattern), Image.fromarray(pattern.copy()),

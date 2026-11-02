@@ -153,8 +153,14 @@ def validate_manifest(manifest: dict) -> None:
         raise ValueError("Unsupported manifest schema")
     classes = manifest.get("classes", [])
     class_ids = [entry["id"] for entry in classes]
-    if class_ids != list(range(1, len(classes) + 1)) or len({c["name"] for c in classes}) != len(classes):
+    if (not classes or class_ids != list(range(1, len(classes) + 1))
+            or len({c["name"] for c in classes}) != len(classes)):
         raise ValueError("Taxonomy must have unique names and contiguous 1-based IDs")
+    if "manifest_digest" in manifest:
+        content = {key: value for key, value in manifest.items() if key != "manifest_digest"}
+        digest = hashlib.sha256(json.dumps(content, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        if digest != manifest["manifest_digest"]:
+            raise ValueError("Manifest content digest mismatch")
     seen, group_splits, digest_splits = set(), {}, {}
     for row in manifest.get("records", []):
         if row["id"] in seen:
@@ -165,7 +171,7 @@ def validate_manifest(manifest: dict) -> None:
                 or "\\" in row["image"] or ":" in row["image"] or not path.name):
             raise ValueError("Unsafe image path")
         width, height = row["width"], row["height"]
-        if width <= 0 or height <= 0:
+        if type(width) is not int or type(height) is not int or width <= 0 or height <= 0:
             raise ValueError("Invalid image dimensions")
         if row["split"] not in {"train", "val", "test"}:
             raise ValueError("Invalid split")

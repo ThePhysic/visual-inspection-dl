@@ -14,6 +14,14 @@ classes. These are AOI candidate patches, not representative full-board images o
 unfiltered production streams. Detection precision here cannot establish production
 false-alarm rates or justify autonomous manufacturing decisions.
 
+The frozen audit accepts **4,788** images: **3,352 train, 714 validation, 722 test**.
+It excludes `YOLO/images/val/5799_t_038.jpg` because its fifth annotation has a
+non-positive box extent. There are 127 supplied empty-label negative patches,
+no exact decoded-image duplicates, 63 near-duplicate pairs, and 685 filename-prefix
+proxies merged into 664 final components (largest: 267 images). All eight classes
+appear in all splits. The rarest class, `open`, has only 78/17/17 train/validation/test
+images (84/30/18 instances), which limits per-class statistical precision.
+
 The release's documented zero-based YOLO taxonomy maps to detector labels as follows:
 
 | Original ID | Model ID | Name |
