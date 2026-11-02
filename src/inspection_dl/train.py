@@ -227,6 +227,7 @@ def train(args) -> dict:
                 module.eval()
         loss_sums = {}
         samples = 0
+        skipped_amp_steps = 0
         for images, targets, _ in loader:
             images = [image.to(args.device) for image in images]
             targets = [{key: value.to(args.device) for key, value in target.items()} for target in targets]
@@ -238,7 +239,12 @@ def train(args) -> dict:
                 raise RuntimeError("nonfinite training loss")
             scaler.scale(total).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0, error_if_nonfinite=True)
+            gradient_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), 10.0, error_if_nonfinite=not scaler.is_enabled()
+            )
+            # Dynamic scaling may overflow transiently; scaler skips that update.
+            if not torch.isfinite(gradient_norm):
+                skipped_amp_steps += 1
             scaler.step(optimizer)
             scaler.update()
             for key, value in losses.items():
@@ -253,7 +259,7 @@ def train(args) -> dict:
             raise ValueError("validation has no ground truth for model selection")
         improved = current_ap > best_ap
         best_ap = max(best_ap, current_ap)
-        row = {"epoch": epoch, "learning_rate": learning_rate, "loss": {key: value / samples for key, value in loss_sums.items()}, "samples": samples, "validation_map50": report["map50"], "validation_map50_95": current_ap, "seconds": time.perf_counter() - epoch_start, "selected": improved}
+        row = {"epoch": epoch, "learning_rate": learning_rate, "loss": {key: value / samples for key, value in loss_sums.items()}, "samples": samples, "skipped_amp_steps": skipped_amp_steps, "validation_map50": report["map50"], "validation_map50_95": current_ap, "seconds": time.perf_counter() - epoch_start, "selected": improved}
         history.append(row)
         checkpoint = {"architecture": ARCHITECTURE, "model": {key: value.detach().cpu() for key, value in model.state_dict().items()}, "classes": manifest["classes"], "taxonomy_version": manifest["taxonomy_version"], "dataset_id": manifest["dataset_id"], "training_run_id": output.name, "config": configuration, "epoch": epoch, "best_ap": best_ap, "optimizer": optimizer.state_dict(), "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(), "history": history, "torch_rng": torch.get_rng_state(), "python_rng": random.getstate(), "loader_rng": generator.get_state(), "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}
         save_checkpoint(output / "last.pt", checkpoint)
