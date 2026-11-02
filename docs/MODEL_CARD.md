@@ -100,6 +100,14 @@ and [PR/score plots](../reports/rtx4060-study-v2/holdout/precision_recall_and_sc
 
 ## Local performance and bounded optimization
 
+All performance values below come from the newly measured,
+[release-bound benchmark](../reports/rtx4060-study-v2/benchmark-release.json), whose artifact,
+weights, model/taxonomy version, dataset and class mapping exactly match this
+release. Each available configuration records the identity actually loaded.
+The earlier [benchmark.json](../reports/rtx4060-study-v2/benchmark.json) is preserved as historical
+measurement only: its missing model identity fields prevent it from establishing
+release-specific performance provenance. It supplies none of the values below.
+
 Hardware: **NVIDIA GeForce RTX 4060 Laptop GPU**; CPU identification:
 **AMD Ryzen 9 7940HS w/ Radeon 780M Graphics**; platform `Windows-11-10.0.26200-SP0`.
 The [hardware record](../reports/environment.json) reports
@@ -112,10 +120,10 @@ This measures local warmed inference without HTTP/network overhead.
 
 | Device | Batch | Timed batches | Bundle load, ms | Batch p50, ms | Batch p95, ms | Images/s | Peak allocated VRAM, MiB | Lifetime peak RSS, MiB |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| cpu | 1 | 100 | 434.50 | 55.03 | 70.59 | 17.60 | not measured | 713.7 |
-| cpu | 4 | 25 | 434.50 | 142.61 | 149.59 | 28.20 | not measured | 799.8 |
-| cuda | 1 | 100 | 397.77 | 32.49 | 38.75 | 30.65 | 130.6 | 1409.0 |
-| cuda | 4 | 25 | 397.77 | 60.90 | 88.45 | 61.47 | 177.1 | 1441.2 |
+| cpu | 1 | 100 | 586.13 | 54.38 | 67.05 | 18.05 | not measured | 715.1 |
+| cpu | 4 | 25 | 586.13 | 137.81 | 195.06 | 26.59 | not measured | 800.9 |
+| cuda | 1 | 100 | 457.23 | 36.79 | 41.86 | 28.16 | 130.6 | 1413.8 |
+| cuda | 4 | 25 | 457.23 | 70.92 | 81.66 | 56.93 | 177.1 | 1443.2 |
 
 | Device | Batch | Subset AP50 | Subset AP50:.95 | Precision | Recall | Counts equal vs batch1 | Labels equal | Max box difference, px | Max score difference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -124,16 +132,16 @@ This measures local warmed inference without HTTP/network overhead.
 | cuda | 1 | 0.5767 | 0.3403 | 0.5734 | 0.6777 | True | True | 0.000000 | 0.00000000 |
 | cuda | 4 | 0.5767 | 0.3403 | 0.5775 | 0.6777 | True | False | 296.653351 | 0.00346604 |
 
-cpu: batch 4/batch 1 throughput ratio 1.603; AP50:.95 change +0.000000; operating-count changes TP +0, FP +0, FN +0 on the identical subset. cuda: batch 4/batch 1 throughput ratio 2.005; AP50:.95 change -0.000025; operating-count changes TP +0, FP -1, FN +0 on the identical subset. The optimization changes batch policy only; these
+cpu: batch 4/batch 1 throughput ratio 1.473; AP50:.95 change +0.000000; operating-count changes TP +0, FP +0, FN +0 on the identical subset. cuda: batch 4/batch 1 throughput ratio 2.022; AP50:.95 change -0.000025; operating-count changes TP +0, FP -1, FN +0 on the identical subset. The optimization changes batch policy only; these
 quality comparisons use identical images and the same released weights.
 Exact output parity is not established for cuda batch 4. Raw model output counts and label order are compared before validation and operating-threshold filtering. Coordinate and score differences compare rows by score rank; when labels/order differ, the coordinate maximum is not displacement of matched detections. The AP and operating-count comparisons measure the observed quality effect independently of this rank comparison.
 Batch latency is not per-image request latency. Forward timing includes resize,
 normalization, model execution, NMS and coordinate restoration, using preloaded
 device inputs. Its throughput excludes input transfer and CPU output materialization.
 Decoding/tensor
-conversion p50/p95 are 1.813/
-2.498ms; transfer times are
-reported separately in [benchmark JSON](../reports/rtx4060-study-v2/benchmark.json). Decode/tensor
+conversion p50/p95 are 1.743/
+2.555ms; transfer times are
+reported separately in [benchmark JSON](../reports/rtx4060-study-v2/benchmark-release.json). Decode/tensor
 timing includes image-file I/O and excludes preceding checksum verification.
 Bundle load timing includes integrity validation and model construction, but
 excludes Python imports and initial CUDA context creation; cache state is uncontrolled.

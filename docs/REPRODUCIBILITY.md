@@ -105,6 +105,20 @@ snapshots and must agree, allowing formatting-only changes. Other modules may
 change between runs without changing training computation; the complete source
 identities remain explicit. Source reconstruction and every documentation input
 digest are retained in `reports/rtx4060-study-v2/documentation-inputs.json`.
+The release-specific performance report is `benchmark-release.json` and pins
+artifact `9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e`, weights
+`28271a688aa7335521bb7725423fd6ea6622f3d1964bfaed83dd97b4f0ff34d9`, model version
+`pcb-ind-ssdlite-v1` and the complete release taxonomy/dataset
+identity. Every available CPU/GPU configuration must agree with those fields
+before documentation can be generated. Benchmark source revision
+`4f63c733c60bb1e77720c32f4a44b05af6d7bf3f` has package hash
+`91754feb4233d7e0cc48611af54d15f6e795e40ea1ffae04e9b0caa23c59ca1f`, independently reconstructed
+exactly from that retained commit. Its recorded working-tree dirty flag is
+`False`; unrelated outputs may affect that flag, while
+the source-byte comparison establishes the actual package identity.
+The original `benchmark.json` remains historical and is not retroactively assigned
+the release identity. New timings can differ with hardware warmth and runtime
+conditions; no model or operating-threshold change is implied by remeasurement.
 
 Selected checkpoint SHA256: `c6d6532da7201fd8f8ba182117e4e92eca5562578b9592bf50b9a44c8670227b`.
 Released weights SHA256: `28271a688aa7335521bb7725423fd6ea6622f3d1964bfaed83dd97b4f0ff34d9`.
@@ -190,6 +204,7 @@ separate. Attribution and model-use limitations are recorded in
 | reports/metric-reference.json | 6c770ceed9267eef0ea384327fce942f709f5c9567c5726baba0300a343f9d7d |
 | reports/rtx4060-study-v1/failed-run.json | 2cab934fd5652614ace35a832ea321c219d255c877fc297529508327218db857 |
 | reports/rtx4060-study-v1/failure.json | 89b9bf1507a232811379158dad8cdd85c08043f16ab44794b606a8b2cf3eb6b0 |
+| reports/rtx4060-study-v2/benchmark-release.json | 3f3f084b7ce39beb610856e40709b4b28445c12fb403b8bf42e0d02e6f8d9736 |
 | reports/rtx4060-study-v2/benchmark.json | 6c44044acc5ab797859222b98adcca6ff5730e64b858e6d60a6635b290c4cfe0 |
 | reports/rtx4060-study-v2/experiments/flip/history.json | 9eaf5c528d1be56e0e2ce3cfe93d1cd7ea7c0e5ec2b9ad948a3de802023b845c |
 | reports/rtx4060-study-v2/experiments/flip/run.json | 575f819990693743a084dd7ce3f8ba6cf5dd34aa5486ac17242c0da9c4706baf |
@@ -230,7 +245,7 @@ separate. Attribution and model-use limitations are recorded in
 | requirements-cpu.txt | fb79b27549b42529a58d6d1e55ab1b6aef65c5dcd730b0bcd14bd065bec3e59d |
 | requirements-gpu.lock | dc39816f43e18bb918395c2e86ce2e0170b60e2e30d8f284b35c1c630e96df27 |
 | requirements-gpu.txt | e5ea6fa26f0deaa45abd9378ef9e9ee4f5da4ddb15f635762542111c9912d7ae |
-| scripts/summarize_study.py | 093ffc2a2213bd2146bed1e1cad04a9b447c1e408077915183d5dcc6c37b2f8d |
+| scripts/summarize_study.py | e9ff8432bdc93bda5f68db9aec572851f2997a06e2ec2e96ac8a6324518ffbf3 |
 
 Generated deterministically without current timestamps or external requests by
 `scripts/summarize_study.py`. Regeneration requires completed matching evidence;

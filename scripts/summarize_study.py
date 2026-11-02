@@ -46,6 +46,63 @@ def table(headers: list[str], rows: list[list]) -> str:
     )
 
 
+def validate_benchmark_identity(metadata: dict, benchmark: dict) -> None:
+    """Require performance evidence to identify the exact released model.
+
+    Dataset compatibility alone does not establish which weights were timed.
+    Available configurations must independently retain the same loaded identity;
+    unavailable-device notices may omit it because no model was executed.
+    """
+    identity_fields = (
+        "artifact_digest",
+        "weights_sha256",
+        "model_version",
+        "taxonomy_version",
+        "dataset_id",
+    )
+    for key in identity_fields:
+        if benchmark.get(key) != metadata[key]:
+            raise ValueError(f"Benchmark release identity mismatch: {key}")
+    if benchmark.get("manifest_sha256") != metadata["dataset_manifest_sha256"]:
+        raise ValueError("Benchmark release identity mismatch: manifest_sha256")
+    if benchmark.get("classes") != metadata["classes"]:
+        raise ValueError("Benchmark release identity mismatch: classes")
+    source = benchmark.get("benchmark_source", {})
+
+    def valid_digest(value, length):
+        return (
+            isinstance(value, str)
+            and len(value) == length
+            and all(character in "0123456789abcdef" for character in value)
+        )
+
+    if (
+        not isinstance(source, dict)
+        or not valid_digest(source.get("package_source_sha256"), 64)
+        or not valid_digest(source.get("revision"), 40)
+        or source.get("git_available") is not True
+        or type(source.get("dirty")) is not bool
+    ):
+        raise ValueError("Benchmark source identity is missing or malformed")
+    if not isinstance(benchmark.get("results"), list) or not benchmark["results"]:
+        raise ValueError("Benchmark has no measured configurations")
+    for index, result in enumerate(benchmark["results"]):
+        if result.get("unavailable"):
+            continue
+        for key in identity_fields:
+            if result.get(key) != metadata[key]:
+                raise ValueError(
+                    f"Benchmark configuration {index} release identity mismatch: {key}"
+                )
+        if (
+            "manifest_sha256" in result
+            and result["manifest_sha256"] != benchmark["manifest_sha256"]
+        ):
+            raise ValueError(f"Benchmark configuration {index} manifest identity mismatch")
+        if "classes" in result and result["classes"] != benchmark["classes"]:
+            raise ValueError(f"Benchmark configuration {index} taxonomy mapping mismatch")
+
+
 class Evidence:
     def __init__(self, root: Path):
         self.root = root.resolve()
@@ -149,6 +206,7 @@ def load_study(args) -> dict:
         study / "holdout/per_image_errors.json",
         study / "holdout/examples.json",
         study / "benchmark.json",
+        study / "benchmark-release.json",
         release / "metadata.json",
         release / "evaluation.json",
     ]
@@ -175,8 +233,23 @@ def load_study(args) -> dict:
     holdout = evidence.read(study / "holdout/report.json")
     errors = evidence.read(study / "holdout/per_image_errors.json")["images"]
     examples = evidence.read(study / "holdout/examples.json")
-    benchmark = evidence.read(study / "benchmark.json")
+    historical_benchmark = evidence.read(study / "benchmark.json")
+    benchmark = evidence.read(study / "benchmark-release.json")
     metadata = evidence.read(release / "metadata.json")
+    validate_benchmark_identity(metadata, benchmark)
+    benchmark_source = benchmark["benchmark_source"]
+    benchmark_package_digest, benchmark_module_hashes, _ = git_snapshot(
+        evidence.root, benchmark_source["revision"]
+    )
+    if benchmark_package_digest != benchmark_source["package_source_sha256"]:
+        raise ValueError("Benchmark source bytes do not match its retained Git revision")
+    benchmark_source_reconstruction = {
+        "retained_exact_source_commit": benchmark_source["revision"],
+        "package_source_sha256": benchmark_package_digest,
+        "recorded_dirty": benchmark_source["dirty"],
+        "exact_byte_match": True,
+        "module_sha256": benchmark_module_hashes,
+    }
     released_report = evidence.read(release / "evaluation.json")
     diagnosis = evidence.read("reports/training-diagnosis.json")
     failed_run = evidence.read("reports/rtx4060-study-v1/failed-run.json")
@@ -594,6 +667,14 @@ and [PR/score plots](../{study}/holdout/precision_recall_and_scores.png).
 
 ## Local performance and bounded optimization
 
+All performance values below come from the newly measured,
+[release-bound benchmark](../{study}/benchmark-release.json), whose artifact,
+weights, model/taxonomy version, dataset and class mapping exactly match this
+release. Each available configuration records the identity actually loaded.
+The earlier [benchmark.json](../{study}/benchmark.json) is preserved as historical
+measurement only: its missing model identity fields prevent it from establishing
+release-specific performance provenance. It supplies none of the values below.
+
 Hardware: **{benchmark["hardware"]["gpu"]}**; CPU identification:
 **{c["environment_report"]["hardware"]["cpu"].strip()}**; platform `{benchmark["hardware"]["platform"]}`.
 The [hardware record](../reports/environment.json) reports
@@ -617,7 +698,7 @@ device inputs. Its throughput excludes input transfer and CPU output materializa
 Decoding/tensor
 conversion p50/p95 are {number(benchmark["decode_tensor_conversion"]["p50_ms"], 3)}/
 {number(benchmark["decode_tensor_conversion"]["p95_ms"], 3)}ms; transfer times are
-reported separately in [benchmark JSON](../{study}/benchmark.json). Decode/tensor
+reported separately in [benchmark JSON](../{study}/benchmark-release.json). Decode/tensor
 timing includes image-file I/O and excludes preceding checksum verification.
 Bundle load timing includes integrity validation and model construction, but
 excludes Python imports and initial CUDA context creation; cache state is uncontrolled.
@@ -1047,6 +1128,20 @@ snapshots and must agree, allowing formatting-only changes. Other modules may
 change between runs without changing training computation; the complete source
 identities remain explicit. Source reconstruction and every documentation input
 digest are retained in `{study}/documentation-inputs.json`.
+The release-specific performance report is `benchmark-release.json` and pins
+artifact `{c["benchmark"]["artifact_digest"]}`, weights
+`{c["benchmark"]["weights_sha256"]}`, model version
+`{c["benchmark"]["model_version"]}` and the complete release taxonomy/dataset
+identity. Every available CPU/GPU configuration must agree with those fields
+before documentation can be generated. Benchmark source revision
+`{c["benchmark_source"]["revision"]}` has package hash
+`{c["benchmark_source"]["package_source_sha256"]}`, independently reconstructed
+exactly from that retained commit. Its recorded working-tree dirty flag is
+`{c["benchmark_source"]["dirty"]}`; unrelated outputs may affect that flag, while
+the source-byte comparison establishes the actual package identity.
+The original `benchmark.json` remains historical and is not retroactively assigned
+the release identity. New timings can differ with hardware warmth and runtime
+conditions; no model or operating-threshold change is implied by remeasurement.
 
 Selected checkpoint SHA256: `{selected["checkpoint_sha256"]}`.
 Released weights SHA256: `{metadata["weights_sha256"]}`.
@@ -1160,6 +1255,7 @@ def main() -> None:
             "deterministic": True,
             "input_files_sha256": dict(sorted(context["evidence"].files.items())),
             "source_reconstruction": context["sources"],
+            "benchmark_source_reconstruction": context["benchmark_source_reconstruction"],
             "document_sha256": {name: sha256(output / name) for name in documents},
         }
         destination = context["evidence"].path(context["study"] / "documentation-inputs.json")

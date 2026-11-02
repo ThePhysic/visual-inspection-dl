@@ -1,9 +1,27 @@
 {
+  "benchmark_source_reconstruction": {
+    "exact_byte_match": true,
+    "module_sha256": {
+      "__init__.py": "a0cfc53985ce3bb8b53208056d77916a6600e192d11df917b6c9a4fdfbf17df4",
+      "api.py": "f165af3d73305b84e6f618bdbb068f058a379974d1043ebb10654602295e7a5f",
+      "benchmark.py": "1be4ac60f9a4d51e5e4fcc309a374ac3e6c4249de9cabcae5ae9cd4b4540e6b8",
+      "bundle.py": "4792db289a510e49fb33132b34f61348ffea0830514d3bd8174ce6ed31320107",
+      "data.py": "ba6179d56d055b5f98989121faa46d726de221761b850961409f6400040e22c6",
+      "evaluate.py": "ad995dc8e1e334682daa3c15d1fca804a318f350beebe3244263fd1eb7438cb0",
+      "metrics.py": "038852e79272b3d54187bc4fa721b65c8a4fb9c1c45b291cb9940b7df4693136",
+      "model.py": "151d2f75072b9bf086cd19020aef5d46495512a2850388d2d2602581f42f90df",
+      "schemas.py": "84e0d487db721c29005a2d24563731e7edd9d9c93f16b16e912fad4f5e167772",
+      "train.py": "59a09e27feec56e259bda883d21582ac0ac2bf6fe70b38cbd72de0c14d8d8adb"
+    },
+    "package_source_sha256": "91754feb4233d7e0cc48611af54d15f6e795e40ea1ffae04e9b0caa23c59ca1f",
+    "recorded_dirty": false,
+    "retained_exact_source_commit": "4f63c733c60bb1e77720c32f4a44b05af6d7bf3f"
+  },
   "deterministic": true,
   "document_sha256": {
     "ERROR_ANALYSIS.md": "c35bb8bc338f67b1189f0fd6619b61bd841c9ef1b5d0223d4f42595aa2ce401e",
-    "MODEL_CARD.md": "f141811c0411a99cf0a2b26cb6b5c7b6401d2462b8c093518c6d682ef5634ee8",
-    "REPRODUCIBILITY.md": "450f9bc76bcb605369c5651129f26867d67b8e9f4d9545e4a7e909f1a53b626d"
+    "MODEL_CARD.md": "17d37601e23614501d1aba16804b619f5ab718fb1a049a184c1cc74d7e31e9c1",
+    "REPRODUCIBILITY.md": "8d7ad0f5ceb58da1a41c470019d87d23008bdc37b98b11a4ba2b0cc1f0e9778b"
   },
   "generator": "scripts/summarize_study.py",
   "input_files_sha256": {
@@ -19,6 +37,7 @@
     "reports/metric-reference.json": "6c770ceed9267eef0ea384327fce942f709f5c9567c5726baba0300a343f9d7d",
     "reports/rtx4060-study-v1/failed-run.json": "2cab934fd5652614ace35a832ea321c219d255c877fc297529508327218db857",
     "reports/rtx4060-study-v1/failure.json": "89b9bf1507a232811379158dad8cdd85c08043f16ab44794b606a8b2cf3eb6b0",
+    "reports/rtx4060-study-v2/benchmark-release.json": "3f3f084b7ce39beb610856e40709b4b28445c12fb403b8bf42e0d02e6f8d9736",
     "reports/rtx4060-study-v2/benchmark.json": "6c44044acc5ab797859222b98adcca6ff5730e64b858e6d60a6635b290c4cfe0",
     "reports/rtx4060-study-v2/experiments/flip/history.json": "9eaf5c528d1be56e0e2ce3cfe93d1cd7ea7c0e5ec2b9ad948a3de802023b845c",
     "reports/rtx4060-study-v2/experiments/flip/run.json": "575f819990693743a084dd7ce3f8ba6cf5dd34aa5486ac17242c0da9c4706baf",
@@ -59,7 +78,7 @@
     "requirements-cpu.txt": "fb79b27549b42529a58d6d1e55ab1b6aef65c5dcd730b0bcd14bd065bec3e59d",
     "requirements-gpu.lock": "dc39816f43e18bb918395c2e86ce2e0170b60e2e30d8f284b35c1c630e96df27",
     "requirements-gpu.txt": "e5ea6fa26f0deaa45abd9378ef9e9ee4f5da4ddb15f635762542111c9912d7ae",
-    "scripts/summarize_study.py": "093ffc2a2213bd2146bed1e1cad04a9b447c1e408077915183d5dcc6c37b2f8d"
+    "scripts/summarize_study.py": "e9ff8432bdc93bda5f68db9aec572851f2997a06e2ec2e96ac8a6324518ffbf3"
   },
   "source_reconstruction": [
     {
