@@ -13,6 +13,7 @@ data/downloads/
 runs/
 artifacts/
 *.pt
+!releases/**/weights.pt
 *.pth
 *.onnx
 *.zip

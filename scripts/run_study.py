@@ -185,7 +185,7 @@ def main() -> None:
     )
     release_record = Path("releases") / args.release
     release_record.mkdir(parents=True, exist_ok=False)
-    for filename in ("metadata.json", "evaluation.json"):
+    for filename in ("metadata.json", "evaluation.json", "weights.pt"):
         shutil.copyfile(bundle / filename, release_record / filename)
     run(
         "inspection_dl.benchmark",
