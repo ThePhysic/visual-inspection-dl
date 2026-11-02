@@ -26,6 +26,47 @@ def write_new(path: Path, value: dict) -> None:
         stream.write("\n")
 
 
+def verify_completed_run(output: Path, expected: dict) -> dict:
+    record = read(output / "run.json")
+    if not record.get("completed") or any(
+        record["config"].get(key) != value for key, value in expected.items()
+    ):
+        raise ValueError("Candidate is incomplete or differs from the preregistered configuration")
+    if digest(output / "best.pt") != record["best_checkpoint_sha256"]:
+        raise ValueError("Candidate checkpoint integrity mismatch")
+    return record
+
+
+def verify_initialization(paths: list[Path]) -> dict:
+    import torch
+
+    initialized = [torch.load(path, map_location="cpu", weights_only=True) for path in paths]
+    reference = initialized[0]
+    for candidate in initialized[1:]:
+        if (
+            candidate["classes"] != reference["classes"]
+            or candidate["model"].keys() != reference["model"].keys()
+        ):
+            raise ValueError("Candidate initial taxonomy or parameter names differ")
+        if any(
+            not torch.equal(reference["model"][key], candidate["model"][key])
+            for key in reference["model"]
+        ):
+            raise ValueError("Candidate initialization differs")
+    checksum = hashlib.sha256()
+    for key, tensor in sorted(reference["model"].items()):
+        checksum.update(key.encode() + b"\0" + str(tensor.dtype).encode() + b"\0")
+        checksum.update(str(tuple(tensor.shape)).encode() + b"\0")
+        checksum.update(tensor.contiguous().reshape(-1).view(torch.uint8).numpy().tobytes())
+    return {
+        "identical_initial_model_tensors": True,
+        "tensor_count": len(reference["model"]),
+        "initial_tensor_digest": checksum.hexdigest(),
+        "candidates": [path.parent.name for path in paths],
+        "definition": "Exact CPU equality of every initialized parameter and buffer; digest includes sorted name, dtype, shape and bytes",
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=Path("data/manifests/pcb-ind-v4.json"))
@@ -35,7 +76,7 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--learning-rate", type=float, default=0.0003)
     parser.add_argument("--amp", action="store_true", help="explicit mixed-precision experiment")
-    parser.add_argument("--study-id", default="rtx4060-study-v1")
+    parser.add_argument("--study-id", default="local-study")
     parser.add_argument("--release", default="pcb-ind-ssdlite-v1")
     parser.add_argument(
         "--finalize-only",
@@ -122,7 +163,6 @@ def main() -> None:
             options.append("--horizontal-flip")
         if not args.finalize_only:
             run("inspection_dl.train", *common, *options)
-        record = read(output / "run.json")
         expected = {
             "epochs": args.epochs,
             "batch_size": args.batch_size,
@@ -131,15 +171,15 @@ def main() -> None:
             "amp": args.amp,
             "manifest_sha256": digest(args.manifest),
             "horizontal_flip_probability": 0.5 if variant == "flip" else 0.0,
+            "freeze_backbone": False,
+            "pretrained_initialization": True,
+            "architecture": "ssdlite320_mobilenet_v3_large",
+            "preprocessing": "ssdlite320_rgb_unit_v1",
+            "optimizer": "AdamW",
+            "weight_decay": 0.0005,
+            "scheduler": "CosineAnnealingLR",
         }
-        if not record.get("completed") or any(
-            record["config"].get(key) != value for key, value in expected.items()
-        ):
-            raise ValueError(
-                "Candidate is incomplete or differs from the preregistered configuration"
-            )
-        if digest(output / "best.pt") != record["best_checkpoint_sha256"]:
-            raise ValueError("Candidate checkpoint integrity mismatch")
+        record = verify_completed_run(output, expected)
         candidates.append(
             {
                 "variant": variant,
@@ -164,6 +204,10 @@ def main() -> None:
                     raise ValueError("Existing experiment evidence differs; refusing overwrite")
             else:
                 shutil.copyfile(output / filename, destination / filename)
+    parity = verify_initialization(
+        [Path(item["checkpoint"]).parent / "initialized.pt" for item in candidates]
+    )
+    write_new(reports / "initialization-parity.json", parity)
     selected = max(candidates, key=lambda item: item["validation_map50_95"])
     run(
         "inspection_dl.evaluate",
