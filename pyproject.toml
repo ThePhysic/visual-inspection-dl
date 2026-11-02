@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visual-inspection-dl"
+version = "0.1.0"
+description = "Reproducible industrial defect detection, evaluation, and versioned inference"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "torch==2.7.1", "torchvision==0.22.1", "numpy==2.2.6",
+  "Pillow==11.3.0", "fastapi==0.116.1", "uvicorn==0.35.0",
+  "pydantic==2.11.7", "matplotlib==3.10.5", "scipy==1.16.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.1", "httpx==0.28.1", "ruff==0.12.9"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
