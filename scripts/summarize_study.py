@@ -1071,6 +1071,8 @@ def main() -> None:
             "scripts/summarize_study.py",
             "requirements-cpu.txt",
             "requirements-gpu.txt",
+            "requirements-cpu.lock",
+            "requirements-gpu.lock",
             "pyproject.toml",
             ".gitattributes",
         ):
@@ -1083,7 +1085,7 @@ def main() -> None:
         output = context["evidence"].path(args.output_dir)
         output.mkdir(parents=True, exist_ok=True)
         for filename, content in documents.items():
-            (output / filename).write_text(content, encoding="utf-8")
+            (output / filename).write_bytes(content.encode("utf-8"))
         inputs = {
             "generator": "scripts/summarize_study.py",
             "deterministic": True,
@@ -1092,8 +1094,8 @@ def main() -> None:
             "document_sha256": {name: sha256(output / name) for name in documents},
         }
         destination = context["evidence"].path(context["study"] / "documentation-inputs.json")
-        destination.write_text(
-            json.dumps(inputs, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8"
+        destination.write_bytes(
+            (json.dumps(inputs, indent=2, sort_keys=True, allow_nan=False) + "\n").encode("utf-8")
         )
         print(
             json.dumps(
