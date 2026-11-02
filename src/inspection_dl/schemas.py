@@ -53,6 +53,7 @@ class Prediction(ContractModel):
     coordinate_system: Literal["xyxy_pixels_original_image"] = "xyxy_pixels_original_image"
     confidence_threshold: float = Field(ge=0, le=1)
     nms_threshold: float = Field(ge=0, le=1)
+    invalid_predictions_rejected: int = Field(ge=0)
     detections: list[Detection]
     timing_ms: Timing
 

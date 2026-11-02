@@ -68,10 +68,14 @@ curl.exe --fail-with-body http://127.0.0.1:8000/ready
 
 ## Validation record and limits
 
-On the development Windows machine, Docker CLI 29.9.1 was available but the Docker
-Desktop Linux daemon was stopped (`dockerDesktopLinuxEngine` named pipe absent).
-The image could therefore not be built or run in this session. Container build and
-runtime behavior are supplied as a recipe and are not claimed as executed evidence.
+An initial check found Docker Desktop's Linux daemon unavailable. It became available
+later in the session, and the CPU image then built successfully. Actual container HTTP
+checks passed for explicit fixture inference and missing-bundle readiness, with host
+ports restricted to loopback. The running user was UID 10001 and the runtime reported
+PyTorch 2.7.1+cpu, torchvision 0.22.1+cpu, and no CUDA. Both temporary containers were
+removed. [Container evidence](../reports/validation/container.json) records the tested
+image ID, commands, and results. Its fixture outputs make no trained-model quality
+claim; a trained bundle mounted read-only is checked separately after training.
 The separately installed Windows CPU environment was verified with Python 3.12.15,
 PyTorch 2.7.1+cpu, torchvision 0.22.1+cpu, and `cuda_available: false`. Dependency
 consistency passed for all 44 installed packages. All 99 practical tests passed in
@@ -82,7 +86,9 @@ These checks provide environment validation without claiming full training in CI
 Actual HTTP requests against temporary loopback servers in this CPU-only environment
 also passed for explicit fixture inference and missing-bundle readiness. Both servers
 were stopped after the check. Local diagnostic evidence is in
-`tmp/service-smoke-cpu/http-contract.json`; the fixture results are explicitly simulated.
+[the CPU environment report](../reports/validation/cpu-environment.json); the fixture
+results are explicitly simulated. The report preserves the earlier 99-test run;
+later source changes and added tests are validated separately.
 
 These local commands provide no authentication, TLS, remote hosting, autoscaling,
 or production SLA. External hosting and integration into the existing Visual

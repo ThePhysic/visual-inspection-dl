@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import io
 import logging
+import math
 import os
 import threading
 import time
@@ -125,8 +126,15 @@ class FixtureBackend:
         return output, 0.0, _milliseconds(start)
 
 
-def _detections(output: dict, classes: list[dict], threshold: float) -> list[Detection]:
-    """Validate backend output. Invalid predictions fail rather than being fabricated."""
+def _detections(
+    output: dict, classes: list[dict], threshold: float, width: int, height: int
+) -> tuple[list[Detection], int]:
+    """Discard/count invalid geometry; malformed taxonomy/scores remain backend bugs.
+
+    Torchvision clips proposals to the original image. An otherwise legitimate
+    proposal can become zero-area at a boundary, including below the operating
+    threshold. Preserve valid detections while making every geometry discard visible.
+    """
     taxonomy = {entry["id"]: entry["name"] for entry in classes}
     converted = {}
     for key in ("boxes", "labels", "scores"):
@@ -134,7 +142,7 @@ def _detections(output: dict, classes: list[dict], threshold: float) -> list[Det
         converted[key] = value.tolist() if hasattr(value, "tolist") else value
     if not len(converted["boxes"]) == len(converted["labels"]) == len(converted["scores"]):
         raise ValueError("backend output lengths disagree")
-    result = []
+    result, rejected = [], 0
     for box, label, score in zip(
         converted["boxes"], converted["labels"], converted["scores"], strict=True
     ):
@@ -142,15 +150,24 @@ def _detections(output: dict, classes: list[dict], threshold: float) -> list[Det
             raise ValueError("backend returned an unknown class")
         if len(box) != 4:
             raise ValueError("backend box must have four coordinates")
+        # Validate scores even when the candidate's geometry will be discarded.
+        confidence = float(score)
+        if not math.isfinite(confidence) or not 0 <= confidence <= 1:
+            raise ValueError("backend score must be finite and within [0,1]")
+        if not all(math.isfinite(coordinate) for coordinate in box) or not (
+            0 <= box[0] < box[2] <= width and 0 <= box[1] < box[3] <= height
+        ):
+            rejected += 1
+            continue
         detection = Detection(
             class_id=label,
             label=taxonomy[label],
-            confidence=score,
+            confidence=confidence,
             box=Box(x_min=box[0], y_min=box[1], x_max=box[2], y_max=box[3]),
         )
         if detection.confidence >= threshold:
             result.append(detection)
-    return result
+    return result, rejected
 
 
 def create_app(
@@ -244,7 +261,9 @@ def create_app(
             applied_threshold = (
                 selected.metadata["confidence_threshold"] if threshold is None else threshold
             )
-            detections = _detections(output, selected.metadata["classes"], applied_threshold)
+            detections, rejected = _detections(
+                output, selected.metadata["classes"], applied_threshold, image.width, image.height
+            )
             prediction = Prediction(
                 backend=selected.name,
                 simulated=selected.simulated,
@@ -254,6 +273,7 @@ def create_app(
                 image=ImageShape(width=image.width, height=image.height),
                 confidence_threshold=applied_threshold,
                 nms_threshold=selected.metadata["nms_threshold"],
+                invalid_predictions_rejected=rejected,
                 detections=detections,
                 timing_ms=Timing(
                     decode_preprocess=decode_ms + preprocessing_ms,

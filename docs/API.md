@@ -68,12 +68,19 @@ discarded candidates. Empty detections are a successful result.
   and `0 <= y_min < y_max <= height`. Coordinates are never normalized.
 - The SSDLite model resizes to 320×320 internally, normalizes RGB `[0,1]` using mean
   and standard deviation 0.5, and converts detections back to the original dimensions.
-  No crop or letterbox is applied. The service validates output geometry, confidence,
-  and taxonomy; invalid predictions produce an error.
+  No crop or letterbox is applied. A proposal clipped to an image boundary can become
+  zero-area. The service discards zero-area, inverted, non-finite, or out-of-bounds
+  geometry and explicitly reports the count in `invalid_predictions_rejected`.
+  This count covers all model candidates before the request's confidence threshold,
+  including discarded low-score proposals. Valid detections are retained; all-invalid
+  geometry yields a successful empty detection list with a nonzero rejection count.
+  Unknown classes, invalid/non-finite confidence scores, malformed boxes, or mismatched
+  output lengths remain model errors and return HTTP 500.
 
 Success contains `schema_version`, `provider`, `backend`, `simulated`, `model_version`,
 `taxonomy_version`, `artifact_digest`, `image`, `coordinate_system`,
-`confidence_threshold`, `nms_threshold`, `detections`, and `timing_ms`. Each detection
+`confidence_threshold`, `nms_threshold`, `invalid_predictions_rejected`, `detections`,
+and `timing_ms`. Each detection
 has `class_id`, `label`, `confidence`, and a `box` object. Class IDs start at one;
 zero is background and is never returned. Confidence is a model score, not a calibrated
 probability of a manufacturing defect.
@@ -103,7 +110,7 @@ or exception details. Query validation uses FastAPI's standard `422 detail` resp
 | `415` | `unsupported_media_type`, `media_type_mismatch`, `unsupported_image` |
 | `422` | Invalid query threshold |
 | `503` | `model_unavailable`, `inference_busy`, `resource_exhausted` |
-| `500` | `inference_failed` (model failure or invalid output) |
+| `500` | `inference_failed` (model failure, invalid score/taxonomy, or malformed output) |
 
 Local logs retain initialization/inference exception details for diagnosis. They should
 remain private. No error response contains invented detections.
