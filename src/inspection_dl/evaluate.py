@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
+from .bundle import load_bundle
 from .metrics import (
     box_iou,
     confusion_matrix,
@@ -27,6 +28,7 @@ from .train import (
     predict_records,
     prior_predictions,
     safe_image_path,
+    source_provenance,
     train_prior,
 )
 
@@ -247,7 +249,7 @@ def robustness_report(model, records, root, classes, device, threshold, limit=10
 
 
 def evaluate(args) -> dict:
-    if not 0 <= args.threshold <= 1:
+    if args.threshold is not None and not 0 <= args.threshold <= 1:
         raise ValueError("score threshold must be between zero and one")
     if args.batch_size < 1 or args.threads < 1 or args.robustness_limit < 1:
         raise ValueError("batch size, threads and robustness limit must be positive")
@@ -278,11 +280,63 @@ def evaluate(args) -> dict:
             != record["sha256"]
         ):
             raise ValueError(f"image checksum mismatch: {record['id']}")
-    model, checkpoint = load_checkpoint_model(args.checkpoint, args.device)
-    if checkpoint["classes"] != manifest["classes"] or checkpoint["config"][
-        "manifest_sha256"
-    ] != file_digest(args.manifest):
-        raise ValueError("checkpoint taxonomy or data manifest differs from evaluation")
+    bundle_path = getattr(args, "bundle", None)
+    checkpoint_path = getattr(args, "checkpoint", None)
+    if bool(bundle_path) == bool(checkpoint_path):
+        raise ValueError("provide exactly one --bundle or --checkpoint")
+    manifest_digest = file_digest(args.manifest)
+    if bundle_path:
+        loaded = load_bundle(bundle_path, args.device)
+        metadata = loaded.metadata
+        if (
+            [item.model_dump() for item in metadata.classes] != manifest["classes"]
+            or metadata.dataset_manifest_sha256 != manifest_digest
+            or metadata.dataset_id != manifest["dataset_id"]
+            or metadata.taxonomy_version != manifest["taxonomy_version"]
+        ):
+            raise ValueError(
+                "bundle taxonomy, dataset identity or data manifest differs from evaluation"
+            )
+        embedded_evaluation = json.loads(
+            (Path(bundle_path) / "evaluation.json").read_text(encoding="utf-8")
+        )
+        if not isinstance(embedded_evaluation, dict):
+            raise ValueError("bundle evaluation must be a report object")
+        model = loaded.model
+        if args.threshold is None:
+            args.threshold = metadata.confidence_threshold
+        model_source = {
+            "source_type": "bundle",
+            "artifact_digest": metadata.artifact_digest,
+            "weights_sha256": metadata.weights_sha256,
+            "model_version": metadata.model_version,
+            "taxonomy_version": metadata.taxonomy_version,
+            "checkpoint": None,
+            "checkpoint_sha256": None,
+            "training_checkpoint_sha256": embedded_evaluation.get("checkpoint_sha256"),
+            "training_run_id": metadata.training_run_id,
+            "epoch": embedded_evaluation.get("epoch"),
+        }
+        history_path = None
+    else:
+        model, checkpoint = load_checkpoint_model(checkpoint_path, args.device)
+        if (
+            checkpoint["classes"] != manifest["classes"]
+            or checkpoint["config"]["manifest_sha256"] != manifest_digest
+        ):
+            raise ValueError("checkpoint taxonomy or data manifest differs from evaluation")
+        if args.threshold is None:
+            args.threshold = 0.25
+        model_source = {
+            "source_type": "checkpoint",
+            "checkpoint": str(Path(checkpoint_path).name),
+            "checkpoint_sha256": file_digest(checkpoint_path),
+            "training_run_id": checkpoint.get("training_run_id", Path(checkpoint_path).parent.name),
+            "epoch": checkpoint["epoch"],
+            "taxonomy_version": manifest["taxonomy_version"],
+        }
+        history_path = Path(checkpoint_path).parent / "history.json"
+    evaluation_source = source_provenance()
     start = time.perf_counter()
     predictions = predict_records(model, records, args.data_root, args.device, args.batch_size)
     report = evaluate_detections(records, predictions, manifest["classes"], args.threshold)
@@ -301,12 +355,10 @@ def evaluate(args) -> dict:
         {
             "split": args.split,
             "final_holdout": args.final_holdout,
-            "checkpoint": str(Path(args.checkpoint).name),
-            "checkpoint_sha256": file_digest(args.checkpoint),
-            "manifest_sha256": file_digest(args.manifest),
+            **model_source,
+            "evaluation_source": evaluation_source,
+            "manifest_sha256": manifest_digest,
             "dataset_id": manifest["dataset_id"],
-            "training_run_id": checkpoint.get("training_run_id", Path(args.checkpoint).parent.name),
-            "epoch": checkpoint["epoch"],
             "device": args.device,
             "threshold_selected_here_on_validation": args.select_threshold,
             "threshold_sweep": sweep,
@@ -352,7 +404,7 @@ def evaluate(args) -> dict:
     annotated_examples(
         records, predictions, errors, manifest["classes"], args.data_root, output, args.threshold
     )
-    plot_report(report, Path(args.checkpoint).parent / "history.json", output)
+    plot_report(report, history_path, output)
     if args.robustness:
         robustness = robustness_report(
             model,
@@ -390,11 +442,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--data-root", required=True)
-    parser.add_argument("--checkpoint", required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument(
+        "--checkpoint", help="training checkpoint including its model and provenance"
+    )
+    source.add_argument(
+        "--bundle", help="self-contained released model bundle; no training checkpoint required"
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--split", choices=("val", "test"), default="val")
     parser.add_argument("--final-holdout", action="store_true")
-    parser.add_argument("--threshold", type=float, default=0.25)
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        help="override score threshold; defaults to bundle operating threshold or .25 for checkpoint",
+    )
     parser.add_argument("--select-threshold", action="store_true")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--batch-size", type=int, default=8)

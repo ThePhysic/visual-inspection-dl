@@ -119,6 +119,35 @@ Evaluation refuses to overwrite an existing report directory containing
 `report.json`. The report records checkpoint and manifest digests, split,
 threshold, checkpoint epoch and training-run identity.
 
+## Evaluating a released bundle from a fresh checkout
+
+A released model can be evaluated with its own weights and metadata, without
+the training process, original checkpoint, optimizer state or history. Acquire
+and prepare the documented dataset, then use the released bundle directory:
+
+```powershell
+python -m inspection_dl.evaluate --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind-ready --bundle releases/pcb-ind-v1 --split val --output reports/release-recheck --device cpu
+```
+
+Use the actual release directory listed in the README. `--bundle` and
+`--checkpoint` are mutually exclusive. Bundle evaluation verifies the immutable
+artifact, then requires exact agreement with the manifest digest, dataset ID,
+taxonomy version and class mapping. Its default operating threshold comes from
+bundle metadata; `--threshold` explicitly overrides it. Checkpoint evaluation
+retains its default 0.25 threshold. Existing `--final-holdout` and validation-only
+threshold-selection rules apply equally to bundles. Rechecking validation is
+the preferred release verification and does not consume the reserved holdout.
+
+Bundle reports identify `source_type=bundle`, artifact and weights digests,
+model/taxonomy versions, and training-run identity. `checkpoint` and
+`checkpoint_sha256` are null because no training checkpoint was evaluated;
+`training_checkpoint_sha256` carries the original report's provenance when
+available. A saved epoch can be copied from that embedded report, and missing
+training history simply omits the history plot. Checkpoint report identities
+retain their existing meanings with `source_type=checkpoint`. Every new report
+also records `evaluation_source` with the evaluator's Git revision, dirty-file
+status and actual package-source digest, independently of training provenance.
+
 ## Metric definitions and limits
 
 Predictions are class-aware post-NMS, score >=0.001, at most 100 per image.
