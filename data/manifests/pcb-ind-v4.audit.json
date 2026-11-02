@@ -1,0 +1,495 @@
+{
+  "accepted_images": 4788,
+  "acquisition_group_metadata": "All matching <numeric>_[tb]_<index> filenames sharing numeric prefix are conservatively grouped; prefix semantics unconfirmed. No explicit board/camera/session metadata, so these proxies cannot certify unseen-board generalization",
+  "class_image_counts": {
+    "copper_burr": {
+      "test": 158,
+      "train": 740,
+      "val": 159
+    },
+    "missing_copper": {
+      "test": 155,
+      "train": 723,
+      "val": 156
+    },
+    "mouse_bite": {
+      "test": 122,
+      "train": 570,
+      "val": 123
+    },
+    "open": {
+      "test": 17,
+      "train": 78,
+      "val": 17
+    },
+    "scratch": {
+      "test": 90,
+      "train": 295,
+      "val": 64
+    },
+    "short": {
+      "test": 48,
+      "train": 225,
+      "val": 48
+    },
+    "spurious_copper": {
+      "test": 91,
+      "train": 430,
+      "val": 93
+    },
+    "stain": {
+      "test": 78,
+      "train": 364,
+      "val": 79
+    }
+  },
+  "class_instance_counts": {
+    "copper_burr": {
+      "test": 160,
+      "train": 851,
+      "val": 163
+    },
+    "missing_copper": {
+      "test": 229,
+      "train": 1283,
+      "val": 199
+    },
+    "mouse_bite": {
+      "test": 129,
+      "train": 587,
+      "val": 128
+    },
+    "open": {
+      "test": 18,
+      "train": 84,
+      "val": 30
+    },
+    "scratch": {
+      "test": 90,
+      "train": 309,
+      "val": 64
+    },
+    "short": {
+      "test": 52,
+      "train": 254,
+      "val": 54
+    },
+    "spurious_copper": {
+      "test": 104,
+      "train": 457,
+      "val": 98
+    },
+    "stain": {
+      "test": 83,
+      "train": 416,
+      "val": 85
+    }
+  },
+  "dataset_id": "pcb-ind-zenodo-19723114-v4",
+  "dimension_counts": {
+    "300x300": 4788
+  },
+  "duplicate_audit": {
+    "algorithm": "shared numeric filename prefix OR decoded-RGB SHA256 OR (64-bit dHash Hamming<=4 AND 32x32 grayscale MAE<=6), connected components",
+    "exact_duplicate_pairs": [],
+    "group_count": 664,
+    "largest_group": 267,
+    "near_duplicate_pairs": [
+      {
+        "dhash_distance": 0,
+        "left": "a4cdfbf20260cec6cd4e",
+        "right": "89970dfc6954b0501e4a",
+        "thumbnail_gray_mae": 4.818359
+      },
+      {
+        "dhash_distance": 2,
+        "left": "801f245d7e1c4d042a40",
+        "right": "97042ae1d0988171ef9f",
+        "thumbnail_gray_mae": 5.576172
+      },
+      {
+        "dhash_distance": 4,
+        "left": "6b7850bd100f9ac1cf3d",
+        "right": "3893512ab60683716d10",
+        "thumbnail_gray_mae": 5.30957
+      },
+      {
+        "dhash_distance": 4,
+        "left": "c81140aa809a003bb5a7",
+        "right": "928f274192d6254dfd93",
+        "thumbnail_gray_mae": 3.810547
+      },
+      {
+        "dhash_distance": 3,
+        "left": "ece1831532502d3dfa61",
+        "right": "928f274192d6254dfd93",
+        "thumbnail_gray_mae": 0.980469
+      },
+      {
+        "dhash_distance": 4,
+        "left": "928f274192d6254dfd93",
+        "right": "bff7f782e8866287b98c",
+        "thumbnail_gray_mae": 1.582031
+      },
+      {
+        "dhash_distance": 4,
+        "left": "ce4f46a109debd066a7f",
+        "right": "a112bbc676553051fd01",
+        "thumbnail_gray_mae": 1.121094
+      },
+      {
+        "dhash_distance": 2,
+        "left": "ce4f46a109debd066a7f",
+        "right": "59b09dcf6b624c6004d7",
+        "thumbnail_gray_mae": 1.129883
+      },
+      {
+        "dhash_distance": 4,
+        "left": "a112bbc676553051fd01",
+        "right": "59b09dcf6b624c6004d7",
+        "thumbnail_gray_mae": 1.456055
+      },
+      {
+        "dhash_distance": 4,
+        "left": "ce4f46a109debd066a7f",
+        "right": "7a8e5c37ed02061630b4",
+        "thumbnail_gray_mae": 4.123047
+      },
+      {
+        "dhash_distance": 4,
+        "left": "a112bbc676553051fd01",
+        "right": "7a8e5c37ed02061630b4",
+        "thumbnail_gray_mae": 3.660156
+      },
+      {
+        "dhash_distance": 4,
+        "left": "59b09dcf6b624c6004d7",
+        "right": "7a8e5c37ed02061630b4",
+        "thumbnail_gray_mae": 4.235352
+      },
+      {
+        "dhash_distance": 3,
+        "left": "0521b3da58ea917523a5",
+        "right": "2ee0f94a464fd6b7de48",
+        "thumbnail_gray_mae": 3.904297
+      },
+      {
+        "dhash_distance": 4,
+        "left": "9396d39de7bc4e59a664",
+        "right": "53871579abfae0e0ed11",
+        "thumbnail_gray_mae": 4.151367
+      },
+      {
+        "dhash_distance": 3,
+        "left": "7a8e5c37ed02061630b4",
+        "right": "c87edda74028329b3fe6",
+        "thumbnail_gray_mae": 1.999023
+      },
+      {
+        "dhash_distance": 2,
+        "left": "ce4f46a109debd066a7f",
+        "right": "c1a3bdcaf3057b09d48b",
+        "thumbnail_gray_mae": 3.498047
+      },
+      {
+        "dhash_distance": 2,
+        "left": "a112bbc676553051fd01",
+        "right": "c1a3bdcaf3057b09d48b",
+        "thumbnail_gray_mae": 2.927734
+      },
+      {
+        "dhash_distance": 2,
+        "left": "59b09dcf6b624c6004d7",
+        "right": "c1a3bdcaf3057b09d48b",
+        "thumbnail_gray_mae": 3.616211
+      },
+      {
+        "dhash_distance": 2,
+        "left": "7a8e5c37ed02061630b4",
+        "right": "c1a3bdcaf3057b09d48b",
+        "thumbnail_gray_mae": 1.402344
+      },
+      {
+        "dhash_distance": 3,
+        "left": "6999353df7a6e0b2e3ee",
+        "right": "c1a3bdcaf3057b09d48b",
+        "thumbnail_gray_mae": 1.492188
+      },
+      {
+        "dhash_distance": 4,
+        "left": "4c0375d643813b7ff919",
+        "right": "a43af1cd99f8f107bb17",
+        "thumbnail_gray_mae": 5.008789
+      },
+      {
+        "dhash_distance": 3,
+        "left": "48bc347986286cbcbd03",
+        "right": "fb99a27fed193d189193",
+        "thumbnail_gray_mae": 1.576172
+      },
+      {
+        "dhash_distance": 3,
+        "left": "a23bbacbe54e68ae621b",
+        "right": "fb99a27fed193d189193",
+        "thumbnail_gray_mae": 1.443359
+      },
+      {
+        "dhash_distance": 4,
+        "left": "48bc347986286cbcbd03",
+        "right": "4c47debea38dedde0e6d",
+        "thumbnail_gray_mae": 1.419922
+      },
+      {
+        "dhash_distance": 4,
+        "left": "6933377ac3804ff01893",
+        "right": "f7d3631664ef5519aadb",
+        "thumbnail_gray_mae": 1.913086
+      },
+      {
+        "dhash_distance": 4,
+        "left": "89f09cd230516e10daee",
+        "right": "14bcee46217e4515fac5",
+        "thumbnail_gray_mae": 4.216797
+      },
+      {
+        "dhash_distance": 4,
+        "left": "017e49141feda6c37fe5",
+        "right": "d1edbd4b167c2fb6f313",
+        "thumbnail_gray_mae": 4.038086
+      },
+      {
+        "dhash_distance": 4,
+        "left": "48bc347986286cbcbd03",
+        "right": "645c2dc15d05f335e2c3",
+        "thumbnail_gray_mae": 3.662109
+      },
+      {
+        "dhash_distance": 4,
+        "left": "645c2dc15d05f335e2c3",
+        "right": "50dd95f1d0f77135638b",
+        "thumbnail_gray_mae": 1.003906
+      },
+      {
+        "dhash_distance": 0,
+        "left": "2221510a69576cb9b58b",
+        "right": "db16f408cc4d0703e021",
+        "thumbnail_gray_mae": 5.067383
+      },
+      {
+        "dhash_distance": 0,
+        "left": "ddee1d5bda080f4e2810",
+        "right": "043e2b1ee3417b48a42e",
+        "thumbnail_gray_mae": 4.799805
+      },
+      {
+        "dhash_distance": 0,
+        "left": "d83b7cb0966c62dee9b9",
+        "right": "043e2b1ee3417b48a42e",
+        "thumbnail_gray_mae": 5.663086
+      },
+      {
+        "dhash_distance": 0,
+        "left": "b2541d24540f37eba15e",
+        "right": "415fc9ed343a1935dd74",
+        "thumbnail_gray_mae": 4.734375
+      },
+      {
+        "dhash_distance": 0,
+        "left": "0b1a58152bd1e8cc55d3",
+        "right": "415fc9ed343a1935dd74",
+        "thumbnail_gray_mae": 4.493164
+      },
+      {
+        "dhash_distance": 0,
+        "left": "db16f408cc4d0703e021",
+        "right": "2fd3d29628ac976ccb38",
+        "thumbnail_gray_mae": 5.181641
+      },
+      {
+        "dhash_distance": 0,
+        "left": "aec9944e66abee9d97c4",
+        "right": "b6b7a99d0d75db30be1e",
+        "thumbnail_gray_mae": 5.680664
+      },
+      {
+        "dhash_distance": 4,
+        "left": "47b4d464e5d290dfb1a1",
+        "right": "ef9c30974c02df21e4c1",
+        "thumbnail_gray_mae": 3.630859
+      },
+      {
+        "dhash_distance": 1,
+        "left": "5c586dcef15b28efd21c",
+        "right": "2bf0667b989c83411d2f",
+        "thumbnail_gray_mae": 5.513672
+      },
+      {
+        "dhash_distance": 0,
+        "left": "a4cdfbf20260cec6cd4e",
+        "right": "809679bfb0e675496920",
+        "thumbnail_gray_mae": 5.506836
+      },
+      {
+        "dhash_distance": 4,
+        "left": "d7671f51fce61eedffb7",
+        "right": "3e80d4c86d7e7eae4e4a",
+        "thumbnail_gray_mae": 4.96582
+      },
+      {
+        "dhash_distance": 1,
+        "left": "b660ac754c1f9dc2f17d",
+        "right": "0a4d4235b1a39389ae43",
+        "thumbnail_gray_mae": 3.901367
+      },
+      {
+        "dhash_distance": 4,
+        "left": "2403ee7d43ac5a7bcb28",
+        "right": "0a4d4235b1a39389ae43",
+        "thumbnail_gray_mae": 3.396484
+      },
+      {
+        "dhash_distance": 4,
+        "left": "c70a7706a251829e2c42",
+        "right": "5e4fb74e75ae9fc10d86",
+        "thumbnail_gray_mae": 5.511719
+      },
+      {
+        "dhash_distance": 2,
+        "left": "2bcdedc073489f92f6eb",
+        "right": "90b3641732bb270452b4",
+        "thumbnail_gray_mae": 1.800781
+      },
+      {
+        "dhash_distance": 3,
+        "left": "e2fa9616490892da68d8",
+        "right": "b1150881a543e1a17c57",
+        "thumbnail_gray_mae": 2.12207
+      },
+      {
+        "dhash_distance": 4,
+        "left": "2a51e332f8a613aede62",
+        "right": "5ca314724eeae1913597",
+        "thumbnail_gray_mae": 4.176758
+      },
+      {
+        "dhash_distance": 3,
+        "left": "95cce2ca626b24fc22cf",
+        "right": "f2beccd32c5eeab3b553",
+        "thumbnail_gray_mae": 5.194336
+      },
+      {
+        "dhash_distance": 3,
+        "left": "c21988b71f7d37570816",
+        "right": "dd1dd186f26f89e8756c",
+        "thumbnail_gray_mae": 4.286133
+      },
+      {
+        "dhash_distance": 3,
+        "left": "90987d4b70203c2ca24f",
+        "right": "dd1dd186f26f89e8756c",
+        "thumbnail_gray_mae": 2.956055
+      },
+      {
+        "dhash_distance": 4,
+        "left": "90987d4b70203c2ca24f",
+        "right": "005a58adef2986e8b145",
+        "thumbnail_gray_mae": 1.40918
+      },
+      {
+        "dhash_distance": 2,
+        "left": "78f0e9e0de43c6a1ef4e",
+        "right": "8b2ab105bced3720674a",
+        "thumbnail_gray_mae": 4.359375
+      },
+      {
+        "dhash_distance": 4,
+        "left": "1ac43a0b6d0c7b38db72",
+        "right": "ee8a8d075fb65375b999",
+        "thumbnail_gray_mae": 3.219727
+      },
+      {
+        "dhash_distance": 2,
+        "left": "78f0e9e0de43c6a1ef4e",
+        "right": "729badcaa21278272e40",
+        "thumbnail_gray_mae": 5.229492
+      },
+      {
+        "dhash_distance": 4,
+        "left": "8b2ab105bced3720674a",
+        "right": "729badcaa21278272e40",
+        "thumbnail_gray_mae": 5.913086
+      },
+      {
+        "dhash_distance": 2,
+        "left": "c5e8ad32be8218289f6e",
+        "right": "eb5e7977a517b1660698",
+        "thumbnail_gray_mae": 2.911133
+      },
+      {
+        "dhash_distance": 1,
+        "left": "c5e8ad32be8218289f6e",
+        "right": "9899139b0e79890e7be1",
+        "thumbnail_gray_mae": 3.231445
+      },
+      {
+        "dhash_distance": 3,
+        "left": "eb5e7977a517b1660698",
+        "right": "9899139b0e79890e7be1",
+        "thumbnail_gray_mae": 3.289062
+      },
+      {
+        "dhash_distance": 4,
+        "left": "3e9388f186c1d53fc16f",
+        "right": "6a721253369a9a06b8de",
+        "thumbnail_gray_mae": 4.636719
+      },
+      {
+        "dhash_distance": 4,
+        "left": "dd1dd186f26f89e8756c",
+        "right": "3ecc3cc4c2160c1b4478",
+        "thumbnail_gray_mae": 4.742188
+      },
+      {
+        "dhash_distance": 0,
+        "left": "ddee1d5bda080f4e2810",
+        "right": "f2abff438043629de156",
+        "thumbnail_gray_mae": 4.508789
+      },
+      {
+        "dhash_distance": 0,
+        "left": "043e2b1ee3417b48a42e",
+        "right": "f2abff438043629de156",
+        "thumbnail_gray_mae": 5.650391
+      },
+      {
+        "dhash_distance": 0,
+        "left": "06c76666b65ab605d3b7",
+        "right": "62016102afe2c47e4c34",
+        "thumbnail_gray_mae": 3.936523
+      },
+      {
+        "dhash_distance": 3,
+        "left": "59ddb8c454b02a978bbd",
+        "right": "bf18476a1c93ddeb4b03",
+        "thumbnail_gray_mae": 4.30957
+      }
+    ],
+    "source_prefix_group_count": 685
+  },
+  "empty_images": 127,
+  "exclusions": [
+    {
+      "image": "YOLO/images/val/5799_t_038.jpg",
+      "reason": "line 5: non-positive box extent"
+    }
+  ],
+  "input_images": 4789,
+  "manifest_digest": "e33d69b335bf830eec61cfd7cec4348f4f57d87291941f8679b9f57b1fc37d31",
+  "near_duplicate_detection_limits": "dHash plus thumbnail MAE is conservative and may miss crops, rotations, severe illumination changes and different views of the same board",
+  "orphan_labels": [],
+  "split_counts": {
+    "test": 722,
+    "train": 3352,
+    "val": 714
+  }
+}
