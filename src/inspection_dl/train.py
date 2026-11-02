@@ -8,6 +8,7 @@ import json
 import os
 import platform
 import random
+import subprocess
 import time
 from pathlib import Path
 
@@ -18,7 +19,14 @@ from PIL import Image, ImageOps
 from torch.utils.data import DataLoader, Dataset
 
 from .metrics import evaluate_detections
-from .model import ARCHITECTURE, PREPROCESSING, PRETRAINED_URL, build_detector, horizontal_flip, image_tensor
+from .model import (
+    ARCHITECTURE,
+    PREPROCESSING,
+    PRETRAINED_URL,
+    build_detector,
+    horizontal_flip,
+    image_tensor,
+)
 
 
 def file_digest(path: str | Path) -> str:
@@ -27,6 +35,42 @@ def file_digest(path: str | Path) -> str:
         for block in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def source_provenance() -> dict:
+    """Record Git identity plus actual package contents, including dirty files."""
+    package = Path(__file__).resolve().parent
+    digest = hashlib.sha256()
+    for path in sorted(package.glob("*.py")):
+        digest.update(path.name.encode("utf-8") + b"\0" + path.read_bytes() + b"\0")
+    result = {
+        "package_source_sha256": digest.hexdigest(),
+        "revision": None,
+        "dirty": None,
+        "status": [],
+        "git_available": False,
+    }
+    try:
+        revision = subprocess.run(
+            ["git", "-C", str(package), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        ).stdout.strip()
+        status = subprocess.run(
+            ["git", "-C", str(package), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.SubprocessError):
+        return result
+    result.update(
+        {"revision": revision, "dirty": bool(status), "status": status, "git_available": True}
+    )
+    return result
 
 
 def atomic_json(path: Path, value: dict) -> None:
@@ -68,13 +112,17 @@ def load_manifest(path: str | Path) -> dict:
                 raise ValueError("unknown target class")
             if len(box) != 4 or not np.isfinite(box).all():
                 raise ValueError("nonfinite target box")
-            if not (0 <= box[0] < box[2] <= record["width"] and 0 <= box[1] < box[3] <= record["height"]):
+            if not (
+                0 <= box[0] < box[2] <= record["width"] and 0 <= box[1] < box[3] <= record["height"]
+            ):
                 raise ValueError("target box outside original image frame")
     return manifest
 
 
 class DetectionDataset(Dataset):
-    def __init__(self, records: list[dict], root: str | Path, horizontal_flip_probability: float = 0.0):
+    def __init__(
+        self, records: list[dict], root: str | Path, horizontal_flip_probability: float = 0.0
+    ):
         self.records = records
         self.root = Path(root)
         self.flip_probability = horizontal_flip_probability
@@ -101,9 +149,17 @@ def collate(batch):
 
 
 @torch.inference_mode()
-def predict_records(model, records: list[dict], root: str | Path, device: str, batch_size: int = 8) -> dict:
+def predict_records(
+    model, records: list[dict], root: str | Path, device: str, batch_size: int = 8
+) -> dict:
     model.eval()
-    loader = DataLoader(DetectionDataset(records, root), batch_size=batch_size, shuffle=False, collate_fn=collate, num_workers=0)
+    loader = DataLoader(
+        DetectionDataset(records, root),
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=collate,
+        num_workers=0,
+    )
     predictions = {}
     for images, _, ids in loader:
         outputs = model([image.to(device) for image in images])
@@ -114,7 +170,11 @@ def predict_records(model, records: list[dict], root: str | Path, device: str, b
             labels = output["labels"].detach().cpu()
             valid = torch.isfinite(boxes).all(1) & torch.isfinite(scores)
             valid &= (boxes[:, 2] > boxes[:, 0]) & (boxes[:, 3] > boxes[:, 1])
-            predictions[image_id] = {"boxes": boxes[valid].tolist(), "labels": labels[valid].tolist(), "scores": scores[valid].tolist()}
+            predictions[image_id] = {
+                "boxes": boxes[valid].tolist(),
+                "labels": labels[valid].tolist(),
+                "scores": scores[valid].tolist(),
+            }
     return predictions
 
 
@@ -130,7 +190,11 @@ def train_prior(train_records: list[dict], classes: list[dict]) -> dict:
             if label == class_id
         ]
         if boxes:
-            result[str(class_id)] = {"box": np.median(boxes, axis=0).tolist(), "score": sum(class_id in record["labels"] for record in train_records) / len(train_records)}
+            result[str(class_id)] = {
+                "box": np.median(boxes, axis=0).tolist(),
+                "score": sum(class_id in record["labels"] for record in train_records)
+                / len(train_records),
+            }
     return result
 
 
@@ -138,7 +202,13 @@ def prior_predictions(prior: dict, records: list[dict]) -> dict:
     outputs = {}
     for record in records:
         outputs[record["id"]] = {
-            "boxes": [(np.asarray(item["box"]) * [record["width"], record["height"], record["width"], record["height"]]).tolist() for item in prior.values()],
+            "boxes": [
+                (
+                    np.asarray(item["box"])
+                    * [record["width"], record["height"], record["width"], record["height"]]
+                ).tolist()
+                for item in prior.values()
+            ],
             "labels": [int(key) for key in prior],
             "scores": [item["score"] for item in prior.values()],
         }
@@ -175,7 +245,11 @@ def train(args) -> dict:
         raise ValueError("training and validation splits must both be nonempty")
     # Detect changed files before trusting a frozen manifest.
     for record in train_records + val_records:
-        if record.get("sha256") and file_digest(safe_image_path(Path(args.data_root), record["image"])) != record["sha256"]:
+        if (
+            record.get("sha256")
+            and file_digest(safe_image_path(Path(args.data_root), record["image"]))
+            != record["sha256"]
+        ):
             raise ValueError(f"image checksum mismatch: {record['id']}")
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -185,10 +259,36 @@ def train(args) -> dict:
         raise ValueError("resume requires the original best.pt alongside last.pt")
     if (output / "run.json").exists() and not args.resume:
         raise FileExistsError("run already exists; use a new output directory or explicit --resume")
-    configuration = {"epochs": args.epochs, "batch_size": args.batch_size, "learning_rate": args.lr, "seed": args.seed, "horizontal_flip_probability": 0.5 if args.horizontal_flip else 0.0, "freeze_backbone": args.freeze_backbone, "amp": args.amp, "pretrained_initialization": not args.no_pretrained, "manifest_sha256": file_digest(args.manifest), "architecture": ARCHITECTURE, "preprocessing": PREPROCESSING, "optimizer": "AdamW", "weight_decay": 0.0005, "scheduler": "CosineAnnealingLR", "batch_norm": "running statistics frozen during fine-tuning; affine params trainable", "selection": "highest validation AP50:.95; earliest epoch wins ties", "threads": args.threads}
+    configuration = {
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "learning_rate": args.lr,
+        "seed": args.seed,
+        "horizontal_flip_probability": 0.5 if args.horizontal_flip else 0.0,
+        "freeze_backbone": args.freeze_backbone,
+        "amp": args.amp,
+        "pretrained_initialization": not args.no_pretrained,
+        "manifest_sha256": file_digest(args.manifest),
+        "architecture": ARCHITECTURE,
+        "preprocessing": PREPROCESSING,
+        "optimizer": "AdamW",
+        "weight_decay": 0.0005,
+        "scheduler": "CosineAnnealingLR",
+        "batch_norm": "running statistics frozen during fine-tuning; affine params trainable",
+        "selection": "highest validation AP50:.95; earliest epoch wins ties",
+        "threads": args.threads,
+    }
     started = time.time()
-    model = build_detector(len(manifest["classes"]) + 1, pretrained=not args.no_pretrained and not args.resume, freeze_backbone=args.freeze_backbone).to(args.device)
-    optimizer = torch.optim.AdamW([parameter for parameter in model.parameters() if parameter.requires_grad], lr=args.lr, weight_decay=0.0005)
+    model = build_detector(
+        len(manifest["classes"]) + 1,
+        pretrained=not args.no_pretrained and not args.resume,
+        freeze_backbone=args.freeze_backbone,
+    ).to(args.device)
+    optimizer = torch.optim.AdamW(
+        [parameter for parameter in model.parameters() if parameter.requires_grad],
+        lr=args.lr,
+        weight_decay=0.0005,
+    )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     scaler = torch.amp.GradScaler("cuda", enabled=args.amp and args.device.startswith("cuda"))
     generator = torch.Generator().manual_seed(args.seed)
@@ -201,23 +301,81 @@ def train(args) -> dict:
         optimizer.load_state_dict(previous["optimizer"])
         scheduler.load_state_dict(previous["scheduler"])
         scaler.load_state_dict(previous["scaler"])
-        history, first_epoch, best_ap = previous["history"], previous["epoch"] + 1, previous["best_ap"]
+        history, first_epoch, best_ap = (
+            previous["history"],
+            previous["epoch"] + 1,
+            previous["best_ap"],
+        )
         torch.set_rng_state(previous["torch_rng"])
         random.setstate(previous["python_rng"])
         generator.set_state(previous["loader_rng"])
         if args.device.startswith("cuda") and previous["cuda_rng"]:
             torch.cuda.set_rng_state_all(previous["cuda_rng"])
     prior = train_prior(train_records, manifest["classes"])
-    atomic_json(output / "prior.json", {"definition": "TRAIN-only per-class median normalized box and image prevalence; same predictions for every image after scaling", "prior": prior})
-    baseline = evaluate_detections(val_records, prior_predictions(prior, val_records), manifest["classes"])
+    atomic_json(
+        output / "prior.json",
+        {
+            "definition": "TRAIN-only per-class median normalized box and image prevalence; same predictions for every image after scaling",
+            "prior": prior,
+        },
+    )
+    baseline = evaluate_detections(
+        val_records, prior_predictions(prior, val_records), manifest["classes"]
+    )
     atomic_json(output / "baseline_validation.json", baseline)
     pretrained_cache = Path(torch.hub.get_dir()) / "checkpoints" / PRETRAINED_URL.rsplit("/", 1)[-1]
-    provenance = {"run_id": output.name, "dataset_id": manifest["dataset_id"], "classes": manifest["classes"], "taxonomy_version": manifest["taxonomy_version"], "config": configuration, "environment": {"python": platform.python_version(), "platform": platform.platform(), "torch": str(torch.__version__), "torchvision": str(torchvision.__version__), "cuda": torch.version.cuda, "device": args.device, "gpu": torch.cuda.get_device_name() if torch.cuda.is_available() else None}, "pretrained": {"url": PRETRAINED_URL if not args.no_pretrained else None, "sha256": file_digest(pretrained_cache) if pretrained_cache.exists() and not args.no_pretrained else None, "initialization": "COCO backbone and box regressor; new normal(0,.03) classification head" if not args.no_pretrained else "random initialization"}, "train_images": len(train_records), "validation_images": len(val_records), "holdout_accessed": False}
+    provenance = {
+        "run_id": output.name,
+        "dataset_id": manifest["dataset_id"],
+        "classes": manifest["classes"],
+        "taxonomy_version": manifest["taxonomy_version"],
+        "config": configuration,
+        "environment": {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "torch": str(torch.__version__),
+            "torchvision": str(torchvision.__version__),
+            "cuda": torch.version.cuda,
+            "device": args.device,
+            "gpu": torch.cuda.get_device_name() if torch.cuda.is_available() else None,
+        },
+        "pretrained": {
+            "url": PRETRAINED_URL if not args.no_pretrained else None,
+            "sha256": file_digest(pretrained_cache)
+            if pretrained_cache.exists() and not args.no_pretrained
+            else None,
+            "initialization": "COCO backbone and box regressor; new normal(0,.03) classification head"
+            if not args.no_pretrained
+            else "random initialization",
+        },
+        "train_images": len(train_records),
+        "validation_images": len(val_records),
+        "holdout_accessed": False,
+        "source": source_provenance(),
+    }
     atomic_json(output / "run.json", provenance)
     if not args.resume:
-        save_checkpoint(output / "initialized.pt", {"architecture": ARCHITECTURE, "model": {key: value.detach().cpu() for key, value in model.state_dict().items()}, "classes": manifest["classes"], "config": configuration, "epoch": -1})
-    dataset = DetectionDataset(train_records, args.data_root, configuration["horizontal_flip_probability"])
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate, num_workers=0, generator=generator)
+        save_checkpoint(
+            output / "initialized.pt",
+            {
+                "architecture": ARCHITECTURE,
+                "model": {key: value.detach().cpu() for key, value in model.state_dict().items()},
+                "classes": manifest["classes"],
+                "config": configuration,
+                "epoch": -1,
+            },
+        )
+    dataset = DetectionDataset(
+        train_records, args.data_root, configuration["horizontal_flip_probability"]
+    )
+    loader = DataLoader(
+        dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        collate_fn=collate,
+        num_workers=0,
+        generator=generator,
+    )
     for epoch in range(first_epoch, args.epochs):
         epoch_start = time.perf_counter()
         model.train()
@@ -230,9 +388,14 @@ def train(args) -> dict:
         skipped_amp_steps = 0
         for images, targets, _ in loader:
             images = [image.to(args.device) for image in images]
-            targets = [{key: value.to(args.device) for key, value in target.items()} for target in targets]
+            targets = [
+                {key: value.to(args.device) for key, value in target.items()} for target in targets
+            ]
             optimizer.zero_grad(set_to_none=True)
-            with torch.autocast(device_type="cuda" if args.device.startswith("cuda") else "cpu", enabled=args.amp and args.device.startswith("cuda")):
+            with torch.autocast(
+                device_type="cuda" if args.device.startswith("cuda") else "cpu",
+                enabled=args.amp and args.device.startswith("cuda"),
+            ):
                 losses = model(images, targets)
                 total = sum(losses.values())
             if not torch.isfinite(total):
@@ -252,16 +415,46 @@ def train(args) -> dict:
             samples += len(images)
         learning_rate = optimizer.param_groups[0]["lr"]
         scheduler.step()
-        predictions = predict_records(model, val_records, args.data_root, args.device, args.batch_size)
+        predictions = predict_records(
+            model, val_records, args.data_root, args.device, args.batch_size
+        )
         report = evaluate_detections(val_records, predictions, manifest["classes"])
         current_ap = report["map50_95"]
         if current_ap is None:
             raise ValueError("validation has no ground truth for model selection")
         improved = current_ap > best_ap
         best_ap = max(best_ap, current_ap)
-        row = {"epoch": epoch, "learning_rate": learning_rate, "loss": {key: value / samples for key, value in loss_sums.items()}, "samples": samples, "skipped_amp_steps": skipped_amp_steps, "validation_map50": report["map50"], "validation_map50_95": current_ap, "seconds": time.perf_counter() - epoch_start, "selected": improved}
+        row = {
+            "epoch": epoch,
+            "learning_rate": learning_rate,
+            "loss": {key: value / samples for key, value in loss_sums.items()},
+            "samples": samples,
+            "skipped_amp_steps": skipped_amp_steps,
+            "validation_map50": report["map50"],
+            "validation_map50_95": current_ap,
+            "seconds": time.perf_counter() - epoch_start,
+            "selected": improved,
+        }
         history.append(row)
-        checkpoint = {"architecture": ARCHITECTURE, "model": {key: value.detach().cpu() for key, value in model.state_dict().items()}, "classes": manifest["classes"], "taxonomy_version": manifest["taxonomy_version"], "dataset_id": manifest["dataset_id"], "training_run_id": output.name, "config": configuration, "epoch": epoch, "best_ap": best_ap, "optimizer": optimizer.state_dict(), "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(), "history": history, "torch_rng": torch.get_rng_state(), "python_rng": random.getstate(), "loader_rng": generator.get_state(), "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}
+        checkpoint = {
+            "architecture": ARCHITECTURE,
+            "model": {key: value.detach().cpu() for key, value in model.state_dict().items()},
+            "classes": manifest["classes"],
+            "taxonomy_version": manifest["taxonomy_version"],
+            "dataset_id": manifest["dataset_id"],
+            "training_run_id": output.name,
+            "config": configuration,
+            "epoch": epoch,
+            "best_ap": best_ap,
+            "optimizer": optimizer.state_dict(),
+            "scheduler": scheduler.state_dict(),
+            "scaler": scaler.state_dict(),
+            "history": history,
+            "torch_rng": torch.get_rng_state(),
+            "python_rng": random.getstate(),
+            "loader_rng": generator.get_state(),
+            "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+        }
         save_checkpoint(output / "last.pt", checkpoint)
         if improved:
             save_checkpoint(output / "best.pt", checkpoint)
@@ -269,7 +462,17 @@ def train(args) -> dict:
             atomic_json(output / "best_validation_predictions.json", predictions)
         atomic_json(output / "history.json", {"epochs": history})
         print(json.dumps(row), flush=True)
-    provenance.update({"completed": True, "elapsed_seconds": time.time() - started, "best_validation_map50_95": best_ap, "best_checkpoint_sha256": file_digest(output / "best.pt"), "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated() if args.device.startswith("cuda") else None})
+    provenance.update(
+        {
+            "completed": True,
+            "elapsed_seconds": time.time() - started,
+            "best_validation_map50_95": best_ap,
+            "best_checkpoint_sha256": file_digest(output / "best.pt"),
+            "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated()
+            if args.device.startswith("cuda")
+            else None,
+        }
+    )
     atomic_json(output / "run.json", provenance)
     return provenance
 
@@ -288,8 +491,14 @@ def main():
     parser.add_argument("--horizontal-flip", action="store_true")
     parser.add_argument("--freeze-backbone", action="store_true")
     parser.add_argument("--amp", action="store_true")
-    parser.add_argument("--no-pretrained", action="store_true", help="explicit random initialization for smoke tests")
-    parser.add_argument("--resume", help="resume last.pt with identical configuration including total epochs")
+    parser.add_argument(
+        "--no-pretrained",
+        action="store_true",
+        help="explicit random initialization for smoke tests",
+    )
+    parser.add_argument(
+        "--resume", help="resume last.pt with identical configuration including total epochs"
+    )
     train(parser.parse_args())
 
 

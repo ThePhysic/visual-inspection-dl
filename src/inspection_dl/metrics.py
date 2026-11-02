@@ -31,7 +31,8 @@ def box_iou(box: list[float], boxes: list[list[float]]) -> np.ndarray:
 def _class_curve(records: list[dict], predictions: dict, class_id: int, iou: float):
     truth = {
         record["id"]: [
-            box for box, label in zip(record["boxes"], record["labels"], strict=True)
+            box
+            for box, label in zip(record["boxes"], record["labels"], strict=True)
             if label == class_id
         ]
         for record in records
@@ -95,7 +96,18 @@ def confidence_reliability(curve: dict) -> list[dict]:
     for index in range(10):
         lower, upper = index / 10, (index + 1) / 10
         selected = (scores >= lower) & (scores <= upper if index == 9 else scores < upper)
-        bins.append({"lower_inclusive": lower, "upper": upper, "upper_inclusive": index == 9, "detections": int(selected.sum()), "mean_score": float(scores[selected].mean()) if selected.any() else None, "observed_precision_iou50": float(hits[selected].mean()) if selected.any() else None})
+        bins.append(
+            {
+                "lower_inclusive": lower,
+                "upper": upper,
+                "upper_inclusive": index == 9,
+                "detections": int(selected.sum()),
+                "mean_score": float(scores[selected].mean()) if selected.any() else None,
+                "observed_precision_iou50": float(hits[selected].mean())
+                if selected.any()
+                else None,
+            }
+        )
     return bins
 
 
@@ -118,7 +130,9 @@ def evaluate_detections(
         ):
             if len(box) != 4 or not np.isfinite(box).all() or not 0 <= score <= 1:
                 raise ValueError("invalid prediction geometry or score")
-            if not (0 <= box[0] < box[2] <= record["width"] and 0 <= box[1] < box[3] <= record["height"]):
+            if not (
+                0 <= box[0] < box[2] <= record["width"] and 0 <= box[1] < box[3] <= record["height"]
+            ):
                 raise ValueError("prediction outside original frame")
     per_class = []
     all_ap = []
@@ -133,10 +147,14 @@ def evaluate_detections(
             "ground_truth": curves[0]["ground_truth"],
             "ap50": curves[0]["ap"],
             "ap50_95": float(np.mean(aps)) if aps else None,
-            "ap_by_iou": {str(iou): curve["ap"] for iou, curve in zip(IOU_THRESHOLDS, curves, strict=True)},
+            "ap_by_iou": {
+                str(iou): curve["ap"] for iou, curve in zip(IOU_THRESHOLDS, curves, strict=True)
+            },
             "operating": counts,
             "pr_curve_iou50": curves[0],
-            "score_histogram": np.histogram(curves[0]["scores"], bins=np.linspace(0, 1, 11))[0].tolist(),
+            "score_histogram": np.histogram(curves[0]["scores"], bins=np.linspace(0, 1, 11))[
+                0
+            ].tolist(),
             "confidence_reliability": confidence_reliability(curves[0]),
         }
         per_class.append(result)
@@ -151,9 +169,16 @@ def evaluate_detections(
         "images": len(records),
         "iou_thresholds": IOU_THRESHOLDS,
         "threshold": threshold,
-        "map50": float(np.mean([item["ap50"] for item in per_class if item["ap50"] is not None])) if all_ap else None,
+        "map50": float(np.mean([item["ap50"] for item in per_class if item["ap50"] is not None]))
+        if all_ap
+        else None,
         "map50_95": float(np.mean(all_ap)) if all_ap else None,
-        "operating": {**aggregate_counts, "precision": precision, "recall": recall, "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0},
+        "operating": {
+            **aggregate_counts,
+            "precision": precision,
+            "recall": recall,
+            "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0,
+        },
         "per_class": per_class,
     }
 
@@ -168,11 +193,21 @@ def threshold_sweep(report: dict) -> list[dict]:
                 counts[key] += current[key]
         tp, fp, fn = (counts[key] for key in ("tp", "fp", "fn"))
         p, r = tp / max(tp + fp, 1), tp / max(tp + fn, 1)
-        results.append({"threshold": threshold, **counts, "precision": p, "recall": r, "f1": 2 * p * r / (p + r) if p + r else 0.0})
+        results.append(
+            {
+                "threshold": threshold,
+                **counts,
+                "precision": p,
+                "recall": r,
+                "f1": 2 * p * r / (p + r) if p + r else 0.0,
+            }
+        )
     return results
 
 
-def confusion_matrix(records: list[dict], predictions: dict, classes: list[dict], threshold: float) -> dict:
+def confusion_matrix(
+    records: list[dict], predictions: dict, classes: list[dict], threshold: float
+) -> dict:
     """Greedy class-agnostic IoU .5 matches; rows truth, columns prediction."""
     ids = [item["id"] for item in classes]
     lookup = {class_id: index for index, class_id in enumerate(ids)}
@@ -197,12 +232,23 @@ def confusion_matrix(records: list[dict], predictions: dict, classes: list[dict]
                 matrix[-1, col] += 1
         for index in remaining:
             matrix[lookup[record["labels"][index]], -1] += 1
-    return {"labels": [item["name"] for item in classes] + ["background/missed"], "rows": "ground_truth", "columns": "prediction", "iou": 0.5, "threshold": threshold, "counts": matrix.tolist()}
+    return {
+        "labels": [item["name"] for item in classes] + ["background/missed"],
+        "rows": "ground_truth",
+        "columns": "prediction",
+        "iou": 0.5,
+        "threshold": threshold,
+        "counts": matrix.tolist(),
+    }
 
 
 def grouped_bootstrap(
-    records: list[dict], predictions: dict, classes: list[dict], threshold: float,
-    repetitions: int = 200, seed: int = 2026,
+    records: list[dict],
+    predictions: dict,
+    classes: list[dict],
+    threshold: float,
+    repetitions: int = 200,
+    seed: int = 2026,
 ) -> dict:
     """Group-resampled micro precision/recall, preserving correlated acquisitions."""
     groups = defaultdict(list)
@@ -221,4 +267,11 @@ def grouped_bootstrap(
         tp, fp, fn = array[rng.integers(0, len(array), len(array))].sum(axis=0)
         precision.append(float(tp / max(tp + fp, 1)))
         recall.append(float(tp / max(tp + fn, 1)))
-    return {"method": "percentile group bootstrap of micro precision/recall at IoU .5; no training-seed variability estimate", "groups": len(groups), "repetitions": repetitions, "seed": seed, "precision_95_interval": np.quantile(precision, [0.025, 0.975]).tolist(), "recall_95_interval": np.quantile(recall, [0.025, 0.975]).tolist()}
+    return {
+        "method": "percentile group bootstrap of micro precision/recall at IoU .5; no training-seed variability estimate",
+        "groups": len(groups),
+        "repetitions": repetitions,
+        "seed": seed,
+        "precision_95_interval": np.quantile(precision, [0.025, 0.975]).tolist(),
+        "recall_95_interval": np.quantile(recall, [0.025, 0.975]).tolist(),
+    }

@@ -75,9 +75,7 @@ def image_tensor(image: Image.Image) -> torch.Tensor:
     return torch.from_numpy(array).permute(2, 0, 1).float().div_(255)
 
 
-def horizontal_flip(
-    image: torch.Tensor, boxes: torch.Tensor
-) -> tuple[torch.Tensor, torch.Tensor]:
+def horizontal_flip(image: torch.Tensor, boxes: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """Reflect exclusive xyxy boxes with their image, preserving empty targets."""
     width = image.shape[-1]
     reflected = boxes.clone()
@@ -86,9 +84,7 @@ def horizontal_flip(
     return image.flip(-1), reflected
 
 
-def load_checkpoint_model(
-    checkpoint: str | Path, device: str = "cpu"
-) -> tuple[nn.Module, dict]:
+def load_checkpoint_model(checkpoint: str | Path, device: str = "cpu") -> tuple[nn.Module, dict]:
     """Load a trusted project checkpoint using tensor-only deserialization."""
     payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
     if payload.get("architecture") != ARCHITECTURE:
