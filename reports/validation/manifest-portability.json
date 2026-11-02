@@ -1,0 +1,9 @@
+{
+  "definition": "Byte-level manifest integrity across git storage, before publication; fresh checkout checked separately at release",
+  "path": "data/manifests/pcb-ind-v4.json",
+  "working_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "committed_blob_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "byte_identical": true,
+  "policy": "*.json -text in .gitattributes preserves checksummed bytes across OS checkouts",
+  "discovered_issue": "Git previously normalized Windows CRLF to LF, altering raw manifest SHA256; corrected without changing frozen dataset content or training input bytes"
+}
