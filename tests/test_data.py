@@ -1,6 +1,7 @@
 from copy import deepcopy
 import hashlib
 import json
+from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -17,6 +18,22 @@ def test_yolo_mapping_and_boundaries():
     assert boxes == [[0, 0, 200, 100], [100, 0, 200, 50]]
     assert labels == [1, 8]
     assert parse_yolo("", 200, 100) == ([], [])
+
+
+def test_attributed_real_data_fixture_decodes_and_preserves_annotation_geometry():
+    root = Path(__file__).parent / "fixtures" / "pcb-ind"
+    fixture = json.loads((root / "fixture.json").read_text(encoding="utf-8"))
+    image_bytes = (root / fixture["image"]).read_bytes()
+    annotation_bytes = (root / fixture["annotation"]).read_bytes()
+    assert hashlib.sha256(image_bytes).hexdigest() == fixture["sha256"]
+    assert hashlib.sha256(annotation_bytes).hexdigest() == fixture["annotation_sha256"]
+    with Image.open(root / fixture["image"]) as image:
+        image.load()
+        assert image.size == (fixture["width"], fixture["height"])
+        assert image.getexif().get(274, 1) == 1
+    boxes, labels = parse_yolo(annotation_bytes.decode("utf-8-sig"), fixture["width"], fixture["height"])
+    assert boxes == fixture["boxes"]
+    assert labels == fixture["labels"]
 
 
 @pytest.mark.parametrize("annotation", [

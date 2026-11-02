@@ -1,0 +1,3 @@
+# Real PCB-IND CI fixture
+
+One unchanged training-split image and its original YOLO annotation from PCB-IND v4, by **Hao Yan, Fujian Polytechnic Normal University**, [Zenodo record19723114](https://zenodo.org/records/19723114). Licensed **CC BY4.0** ([license terms](https://creativecommons.org/licenses/by/4.0/)). Image and annotation bytes are unmodified; fixture.json converts annotations into the repository pixel-coordinate contract and records original paths and checksums. This tiny fixture tests real image and label ingestion; it is not an evaluation dataset. Synthetic tests elsewhere are generated separately.

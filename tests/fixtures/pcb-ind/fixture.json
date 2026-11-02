@@ -1,0 +1,59 @@
+{
+  "source": "https://zenodo.org/records/19723114",
+  "author": "Hao Yan, Fujian Polytechnic Normal University",
+  "license": "CC-BY-4.0",
+  "dataset_id": "pcb-ind-zenodo-19723114-v4",
+  "taxonomy_version": "pcb-ind-v4-1",
+  "classes": [
+    {
+      "id": 1,
+      "name": "mouse_bite"
+    },
+    {
+      "id": 2,
+      "name": "missing_copper"
+    },
+    {
+      "id": 3,
+      "name": "scratch"
+    },
+    {
+      "id": 4,
+      "name": "spurious_copper"
+    },
+    {
+      "id": 5,
+      "name": "copper_burr"
+    },
+    {
+      "id": 6,
+      "name": "stain"
+    },
+    {
+      "id": 7,
+      "name": "short"
+    },
+    {
+      "id": 8,
+      "name": "open"
+    }
+  ],
+  "source_path": "YOLO/images/test/5810_t_007.jpg",
+  "image": "5810_t_007.jpg",
+  "annotation": "5810_t_007.txt",
+  "sha256": "683c337a42c5c99d4b7c2d3de92343984eb8c2c95bb75743161988d5e4a73214",
+  "annotation_sha256": "36cfac97b19c4a5f576433b8b94ede00787cee775d0c38f580384b5c34484350",
+  "width": 300,
+  "height": 300,
+  "boxes": [
+    [
+      120.6474,
+      154.7856,
+      177.0018,
+      191.325
+    ]
+  ],
+  "labels": [
+    2
+  ]
+}
