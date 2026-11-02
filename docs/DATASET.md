@@ -22,6 +22,20 @@ proxies merged into 664 final components (largest: 267 images). All eight classe
 appear in all splits. The rarest class, `open`, has only 78/17/17 train/validation/test
 images (84/30/18 instances), which limits per-class statistical precision.
 
+An independent [source-format cross-check](../reports/validation/annotation-crosscheck.json)
+compares all 4,788 accepted records against both original COCO and YOLO annotations,
+including 127 negatives and 906 images with boxes touching an image boundary.
+All class mappings, image/label hashes, decoded dimensions and EXIF orientations
+agree. The largest coordinate difference is 0.00015 pixels due to decimal boundary
+serialization and clipping; the independent comparison tolerance is 0.001 pixels.
+The excluded image has four valid COCO boxes and five YOLO rows: COCO already drops
+the degenerate fifth YOLO box. We conservatively exclude the entire image rather
+than silently correcting this source-format discrepancy. Reproduce the audit with:
+
+```text
+python scripts/crosscheck_annotations.py
+```
+
 The release's documented zero-based YOLO taxonomy maps to detector labels as follows:
 
 | Original ID | Model ID | Name |

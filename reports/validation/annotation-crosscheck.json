@@ -1,0 +1,869 @@
+{
+  "absolute_tolerance_pixels": 0.001,
+  "accepted_class_instance_counts": {
+    "1": 844,
+    "2": 1711,
+    "3": 463,
+    "4": 659,
+    "5": 1174,
+    "6": 584,
+    "7": 360,
+    "8": 132
+  },
+  "accepted_manifest_images": 4788,
+  "archive_sha256": "29cf919c64cab7e60e90e16bf3f42cce674688f99295d66a8e10d0066836e3c9",
+  "boundary_images_compared": 906,
+  "coordinate_semantics": "YOLO normalized cxcywh; COCO pixel xywh; manifest pixel xyxy with exclusive upper edges; source IDs0..7 map to model IDs1..8",
+  "decoded_dimensions_and_identity_exif_checks": 4788,
+  "deterministic_boundary_samples": [
+    {
+      "boxes": [
+        [
+          74.7552,
+          228.69585,
+          103.4334,
+          276.89655
+        ],
+        [
+          149.08185,
+          136.281,
+          167.38575,
+          170.838
+        ],
+        [
+          232.31205,
+          127.3038,
+          243.69855,
+          140.9922
+        ],
+        [
+          136.51305,
+          185.1972,
+          300.0,
+          289.1448
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        1,
+        1,
+        2,
+        6
+      ],
+      "new_split": "test",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5831_b_001.jpg"
+    },
+    {
+      "boxes": [
+        [
+          140.97345,
+          134.4411,
+          168.36855,
+          184.1217
+        ],
+        [
+          214.73685,
+          43.8387,
+          233.60835,
+          77.8809
+        ],
+        [
+          198.68415,
+          124.01325,
+          299.99985,
+          221.38155
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.00015000000001919034,
+      "model_labels": [
+        1,
+        1,
+        6
+      ],
+      "new_split": "test",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5831_b_002.jpg"
+    },
+    {
+      "boxes": [
+        [
+          77.6316,
+          89.09475,
+          189.1536,
+          299.99985
+        ],
+        [
+          190.7895,
+          36.513,
+          250.9869,
+          112.8288
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.00015000000001919034,
+      "model_labels": [
+        6,
+        6
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5897_b_041.jpg"
+    },
+    {
+      "boxes": [
+        [
+          145.0659,
+          2.6316,
+          234.8685,
+          300.0
+        ],
+        [
+          130.59225,
+          134.21055,
+          164.47395,
+          171.05265
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        6,
+        1
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5897_b_050.jpg"
+    },
+    {
+      "boxes": [
+        [
+          0.00015,
+          122.6973,
+          166.11825,
+          277.9605
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.00015,
+      "model_labels": [
+        6
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5897_b_075.jpg"
+    },
+    {
+      "boxes": [
+        [
+          0.0,
+          118.06785,
+          71.7996,
+          200.82015
+        ],
+        [
+          214.80285,
+          100.00005,
+          266.77635,
+          207.89475
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        2,
+        1
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5897_b_095.jpg"
+    },
+    {
+      "boxes": [
+        [
+          260.85525,
+          216.44745,
+          285.19755,
+          300.0
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        1
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5897_b_120.jpg"
+    },
+    {
+      "boxes": [
+        [
+          129.56865,
+          257.99865,
+          173.23935,
+          300.0
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        2
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/6093_b_015.jpg"
+    },
+    {
+      "boxes": [
+        [
+          0.0,
+          162.7644,
+          134.6046,
+          300.0
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        4
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/6108_t_014.jpg"
+    },
+    {
+      "boxes": [
+        [
+          0.0,
+          24.21945,
+          166.4676,
+          171.62835
+        ]
+      ],
+      "minimum_boundary_margin_pixels": 0.0,
+      "model_labels": [
+        4
+      ],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/6108_t_019.jpg"
+    }
+  ],
+  "deterministic_negative_samples": [
+    {
+      "boxes": [],
+      "minimum_boundary_margin_pixels": null,
+      "model_labels": [],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5810_t_002.jpg"
+    },
+    {
+      "boxes": [],
+      "minimum_boundary_margin_pixels": null,
+      "model_labels": [],
+      "new_split": "train",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5810_t_005.jpg"
+    },
+    {
+      "boxes": [],
+      "minimum_boundary_margin_pixels": null,
+      "model_labels": [],
+      "new_split": "test",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5831_b_025.jpg"
+    },
+    {
+      "boxes": [],
+      "minimum_boundary_margin_pixels": null,
+      "model_labels": [],
+      "new_split": "test",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5831_b_026.jpg"
+    },
+    {
+      "boxes": [],
+      "minimum_boundary_margin_pixels": null,
+      "model_labels": [],
+      "new_split": "test",
+      "original_split": "test",
+      "source_path": "YOLO/images/test/5831_b_027.jpg"
+    }
+  ],
+  "deterministic_samples_per_class": {
+    "copper_burr": [
+      {
+        "boxes": [
+          [
+            136.842,
+            147.3681,
+            155.9208,
+            165.7893
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 134.2107,
+        "model_labels": [
+          5
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5934_b_030.jpg"
+      },
+      {
+        "boxes": [
+          [
+            143.49315,
+            140.44965,
+            157.43925,
+            153.96915
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 140.44965,
+        "model_labels": [
+          5
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6093_b_027.jpg"
+      },
+      {
+        "boxes": [
+          [
+            142.46655,
+            145.9866,
+            160.76385,
+            164.0226
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 135.9774,
+        "model_labels": [
+          5
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6093_b_029.jpg"
+      }
+    ],
+    "missing_copper": [
+      {
+        "boxes": [
+          [
+            120.6474,
+            154.7856,
+            177.0018,
+            191.325
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 108.67500000000001,
+        "model_labels": [
+          2
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5810_t_007.jpg"
+      },
+      {
+        "boxes": [
+          [
+            147.0513,
+            143.157,
+            156.4263,
+            158.7618
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 141.2382,
+        "model_labels": [
+          2
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5824_t_001.jpg"
+      },
+      {
+        "boxes": [
+          [
+            144.52815,
+            146.4201,
+            154.77285,
+            159.1449
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 140.8551,
+        "model_labels": [
+          2
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5824_t_002.jpg"
+      }
+    ],
+    "mouse_bite": [
+      {
+        "boxes": [
+          [
+            74.7552,
+            228.69585,
+            103.4334,
+            276.89655
+          ],
+          [
+            149.08185,
+            136.281,
+            167.38575,
+            170.838
+          ],
+          [
+            232.31205,
+            127.3038,
+            243.69855,
+            140.9922
+          ],
+          [
+            136.51305,
+            185.1972,
+            300.0,
+            289.1448
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 0.0,
+        "model_labels": [
+          1,
+          1,
+          2,
+          6
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5831_b_001.jpg"
+      },
+      {
+        "boxes": [
+          [
+            140.97345,
+            134.4411,
+            168.36855,
+            184.1217
+          ],
+          [
+            214.73685,
+            43.8387,
+            233.60835,
+            77.8809
+          ],
+          [
+            198.68415,
+            124.01325,
+            299.99985,
+            221.38155
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 0.00015000000001919034,
+        "model_labels": [
+          1,
+          1,
+          6
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5831_b_002.jpg"
+      },
+      {
+        "boxes": [
+          [
+            145.3278,
+            144.89835,
+            157.8564,
+            158.24865
+          ],
+          [
+            12.82545,
+            16.7886,
+            53.94735,
+            183.5526
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 12.82545,
+        "model_labels": [
+          2,
+          1
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5886_b_039.jpg"
+      }
+    ],
+    "open": [
+      {
+        "boxes": [
+          [
+            126.79455,
+            121.95525,
+            182.32425,
+            163.84335
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 117.67575,
+        "model_labels": [
+          8
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5831_b_015.jpg"
+      },
+      {
+        "boxes": [
+          [
+            131.2749,
+            146.5596,
+            229.6107,
+            155.3142
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 70.38929999999999,
+        "model_labels": [
+          8
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6131_t_001.jpg"
+      },
+      {
+        "boxes": [
+          [
+            74.1762,
+            146.46105,
+            175.8828,
+            155.61855
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 74.1762,
+        "model_labels": [
+          8
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6131_t_002.jpg"
+      }
+    ],
+    "scratch": [
+      {
+        "boxes": [
+          [
+            89.8026,
+            78.2166,
+            193.407,
+            258.8814
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 41.118600000000015,
+        "model_labels": [
+          3
+        ],
+        "new_split": "val",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5910_b_032.jpg"
+      },
+      {
+        "boxes": [
+          [
+            143.54775,
+            115.8126,
+            163.44045,
+            162.4632
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 115.8126,
+        "model_labels": [
+          3
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6103_b_002.jpg"
+      },
+      {
+        "boxes": [
+          [
+            114.04725,
+            103.9839,
+            217.37655,
+            185.7063
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 82.62344999999999,
+        "model_labels": [
+          3
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6201_b_018.jpg"
+      }
+    ],
+    "short": [
+      {
+        "boxes": [
+          [
+            65.6208,
+            118.3467,
+            113.1408,
+            175.8759
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 65.6208,
+        "model_labels": [
+          7
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6108_t_011.jpg"
+      },
+      {
+        "boxes": [
+          [
+            126.00105,
+            145.70475,
+            173.03775,
+            203.93925
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 96.06075000000001,
+        "model_labels": [
+          7
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6108_t_012.jpg"
+      },
+      {
+        "boxes": [
+          [
+            41.5206,
+            150.08925,
+            145.9464,
+            265.44855
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 34.55144999999999,
+        "model_labels": [
+          7
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6108_t_016.jpg"
+      }
+    ],
+    "spurious_copper": [
+      {
+        "boxes": [
+          [
+            126.6447,
+            127.6314,
+            177.6315,
+            169.0788
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 122.36850000000001,
+        "model_labels": [
+          4
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6103_b_012.jpg"
+      },
+      {
+        "boxes": [
+          [
+            56.4453,
+            146.41035,
+            173.1603,
+            183.76725
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 56.4453,
+        "model_labels": [
+          4
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6108_t_003.jpg"
+      },
+      {
+        "boxes": [
+          [
+            119.2239,
+            39.807,
+            175.7313,
+            93.1338
+          ],
+          [
+            144.25185,
+            222.53535,
+            169.01475,
+            299.61705
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 0.3829499999999939,
+        "model_labels": [
+          5,
+          4
+        ],
+        "new_split": "train",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/6108_t_005.jpg"
+      }
+    ],
+    "stain": [
+      {
+        "boxes": [
+          [
+            74.7552,
+            228.69585,
+            103.4334,
+            276.89655
+          ],
+          [
+            149.08185,
+            136.281,
+            167.38575,
+            170.838
+          ],
+          [
+            232.31205,
+            127.3038,
+            243.69855,
+            140.9922
+          ],
+          [
+            136.51305,
+            185.1972,
+            300.0,
+            289.1448
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 0.0,
+        "model_labels": [
+          1,
+          1,
+          2,
+          6
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5831_b_001.jpg"
+      },
+      {
+        "boxes": [
+          [
+            140.97345,
+            134.4411,
+            168.36855,
+            184.1217
+          ],
+          [
+            214.73685,
+            43.8387,
+            233.60835,
+            77.8809
+          ],
+          [
+            198.68415,
+            124.01325,
+            299.99985,
+            221.38155
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 0.00015000000001919034,
+        "model_labels": [
+          1,
+          1,
+          6
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5831_b_002.jpg"
+      },
+      {
+        "boxes": [
+          [
+            131.5788,
+            129.93405,
+            176.9736,
+            178.61835
+          ]
+        ],
+        "minimum_boundary_margin_pixels": 121.38165000000001,
+        "model_labels": [
+          6
+        ],
+        "new_split": "test",
+        "original_split": "test",
+        "source_path": "YOLO/images/test/5831_b_004.jpg"
+      }
+    ]
+  },
+  "errors": [],
+  "excluded_source_images": [
+    {
+      "invalid_yolo_rows": [
+        {
+          "line": 5,
+          "reason": "non-positive box extent"
+        }
+      ],
+      "nonpositive_coco_boxes": 0,
+      "original_yolo_annotation_count": 5,
+      "source_annotation_count": 4,
+      "source_path": "YOLO/images/val/5799_t_038.jpg"
+    }
+  ],
+  "manifest_content_digest": "e33d69b335bf830eec61cfd7cec4348f4f57d87291941f8679b9f57b1fc37d31",
+  "manifest_file_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "maximum_yolo_coco_coordinate_difference_pixels": 0.00015000000001919034,
+  "maximum_yolo_manifest_coordinate_difference_pixels": 0.00015000000001919034,
+  "negative_images_compared": 127,
+  "scope": "All accepted manifest records, independently compared against the author's COCO and YOLO copies",
+  "source": "https://zenodo.org/records/19723114",
+  "source_annotation_hash_checks": 4788,
+  "source_class_instance_counts_including_excluded_image": {
+    "1": 844,
+    "2": 1714,
+    "3": 463,
+    "4": 660,
+    "5": 1174,
+    "6": 584,
+    "7": 360,
+    "8": 132
+  },
+  "source_image_hash_checks": 4788,
+  "source_images": 4789,
+  "status": "pass",
+  "successfully_compared_images": 4788,
+  "taxonomy": [
+    {
+      "id": 1,
+      "name": "mouse_bite"
+    },
+    {
+      "id": 2,
+      "name": "missing_copper"
+    },
+    {
+      "id": 3,
+      "name": "scratch"
+    },
+    {
+      "id": 4,
+      "name": "spurious_copper"
+    },
+    {
+      "id": 5,
+      "name": "copper_burr"
+    },
+    {
+      "id": 6,
+      "name": "stain"
+    },
+    {
+      "id": 7,
+      "name": "short"
+    },
+    {
+      "id": 8,
+      "name": "open"
+    }
+  ]
+}
