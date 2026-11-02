@@ -168,6 +168,10 @@ def load_study(args) -> dict:
     selection = evidence.read(study / "selection.json")
     validation = evidence.read(study / "validation/report.json")
     robustness = evidence.read(study / "validation/robustness.json")
+    control_path = study / "validation/robustness-control.json"
+    robustness_control = (
+        evidence.read(control_path) if evidence.path(control_path).is_file() else None
+    )
     holdout = evidence.read(study / "holdout/report.json")
     errors = evidence.read(study / "holdout/per_image_errors.json")["images"]
     examples = evidence.read(study / "holdout/examples.json")
@@ -312,6 +316,21 @@ def load_study(args) -> dict:
             )
     if robustness["unperturbed_same_subset"]["images"] != len(robustness["images"]):
         raise ValueError("Robustness clean comparison subset differs")
+    if robustness_control is not None:
+        expected_control = {
+            "source_type": "bundle",
+            "artifact_digest": metadata["artifact_digest"],
+            "weights_sha256": metadata["weights_sha256"],
+            "manifest_sha256": manifest_hash,
+            "threshold": threshold,
+            "batch_size": 1,
+            "device": validation["device"],
+            "images": robustness["images"],
+        }
+        if any(robustness_control.get(key) != value for key, value in expected_control.items()):
+            raise ValueError("Robustness clean-control identity or batch protocol differs")
+        if robustness_control["unperturbed_same_subset"]["images"] != len(robustness["images"]):
+            raise ValueError("Robustness clean-control image count differs")
     for item in examples["examples"]:
         evidence.include(study / "holdout" / item["file"])
     for split in ("validation", "holdout"):
@@ -355,7 +374,7 @@ def uncertainty_text(uncertainty: dict) -> str:
     return (
         f"A percentile bootstrap over {uncertainty['groups']} held-out source/duplicate groups "
         f"({uncertainty['repetitions']} resamples, seed {uncertainty['seed']}) gives 95% intervals "
-        f"for micro precision **[{precision}]** and recall **[{recall}]** at IoU0.50 and the frozen threshold. "
+        f"for micro precision **[{precision}]** and recall **[{recall}]** at IoU 0.50 and the frozen threshold. "
         "These intervals reflect observed group sampling; they do not estimate training-seed variation, "
         "unseen-board independence or production-domain shift."
     )
@@ -449,9 +468,36 @@ def model_card(context: dict) -> str:
                 fourth["quality_on_identical_validation_subset"]["map50_95"]
                 - first["quality_on_identical_validation_subset"]["map50_95"]
             )
-            improvements.append(
-                f"{device}: batch4/batch1 throughput ratio {ratio:.3f}; AP50:.95 change {delta:+.6f} on the identical subset."
+            first_counts = first["quality_on_identical_validation_subset"]["operating"]
+            fourth_counts = fourth["quality_on_identical_validation_subset"]["operating"]
+            changes = ", ".join(
+                f"{key.upper()} {fourth_counts[key] - first_counts[key]:+d}"
+                for key in ("tp", "fp", "fn")
             )
+            improvements.append(
+                f"{device}: batch 4/batch 1 throughput ratio {ratio:.3f}; "
+                f"AP50:.95 change {delta:+.6f}; operating-count changes {changes} on the identical subset."
+            )
+    parity_issues = [
+        f"{row['device']} batch {row['batch_size']}"
+        for row in benchmark["results"]
+        if not row.get("unavailable")
+        and (
+            not row["batch_parity_vs_first_configuration"]["labels_equal"]
+            or not row["batch_parity_vs_first_configuration"]["identical_detection_counts"]
+        )
+    ]
+    parity_note = (
+        "Exact output parity is not established for "
+        + ", ".join(parity_issues)
+        + ". Raw model output counts and label order are compared before validation and "
+        "operating-threshold filtering. Coordinate and score differences compare rows by "
+        "score rank; when labels/order differ, the coordinate maximum is not displacement "
+        "of matched detections. The AP and operating-count comparisons measure the observed "
+        "quality effect independently of this rank comparison."
+        if parity_issues
+        else "Raw output order/count checks and numerical differences are reported separately from operating quality."
+    )
     artifact_rows = [
         ["Model version", metadata["model_version"]],
         ["Artifact digest", metadata["artifact_digest"]],
@@ -482,22 +528,22 @@ background. PyTorch **{run["environment"]["torch"]}** and torchvision
 
 Input decoding applies EXIF orientation, converts to RGB and creates floating
 CHW pixels in [0,1]. Torchvision stretches to 320×320 without letterboxing and
-normalizes each channel with mean/std0.5/0.5. Returned boxes use exclusive-upper-edge
+normalizes each channel with mean/std 0.5/0.5. Returned boxes use exclusive-upper-edge
 `xyxy` pixels in the original EXIF-oriented image frame. Training augmentation in
 the selected run reflects horizontally with probability
 **{config["horizontal_flip_probability"]}** and transforms target boxes accordingly.
 
-The model retains candidates above score0.001, applies class-aware NMS at
+The model retains candidates above score 0.001, applies class-aware NMS at
 IoU **{metadata["nms_threshold"]}**, and caps outputs at
 **{metadata["max_detections"]}** detections/image. Serving's default confidence
 threshold is **{c["selection"]["threshold"]}**, selected solely by validation micro
-F1 at IoU0.50; higher thresholds win ties. This is a demonstration operating point,
+F1 at IoU 0.50; higher thresholds win ties. This is a demonstration operating point,
 not an industrial acceptance criterion or a calibrated probability cutoff.
 
 ## Data and model selection
 
-The author release [PCB-INDv4](https://zenodo.org/records/19723114) supplies real
-AOI production-line image patches under CC BY4.0. The frozen audit accepts
+The author release [PCB-IND v4](https://zenodo.org/records/19723114) supplies real
+AOI production-line image patches under CC BY 4.0. The frozen audit accepts
 {audit["accepted_images"]} images: {audit["split_counts"]["train"]} train,
 {audit["split_counts"]["val"]} validation and {audit["split_counts"]["test"]} test.
 {len(audit["exclusions"])} malformed image/annotation record is explicitly excluded.
@@ -505,8 +551,8 @@ All shared numeric filename-prefix proxies and detected visual duplicates stay
 within one split. These inferred groups reduce obvious correlation leakage;
 their physical-board/session semantics are unconfirmed. See [dataset details](DATASET.md).
 
-Two bounded runs share seed{config["seed"]}, batch{config["batch_size"]},
-{config["optimizer"]} at learning rate{config["learning_rate"]}, weight decay
+Two bounded runs share seed {config["seed"]}, batch {config["batch_size"]},
+{config["optimizer"]} at learning rate {config["learning_rate"]}, weight decay
 {config["weight_decay"]}, cosine scheduling, pretrained initialization and epoch
 budget. Only horizontal reflection probability differs. BatchNorm running
 statistics are frozen while trainable affine parameters are fine-tuned.
@@ -528,9 +574,9 @@ geometry for every image and is a deliberately limited reference.
 ## Quantitative results
 
 All AP, precision, recall and F1 values below use a 0–1 scale. AP uses class-aware
-greedy IoU matching, a 101-point precision envelope, and IoUs0.50:0.05:0.95.
+greedy IoU matching, a 101-point precision envelope, and IoUs 0.50:0.05:0.95.
 No crowd/ignore handling or COCO object-area/maxDet averaging is claimed.
-Operating precision/recall/F1 use same-class IoU0.50 matching at the shared frozen
+Operating precision/recall/F1 use same-class IoU 0.50 matching at the shared frozen
 threshold for both baseline and trained model.
 
 {aggregate_table(validation, holdout)}
@@ -555,7 +601,7 @@ The [hardware record](../reports/environment.json) reports
 and GPU model/VRAM/driver `{c["environment_report"]["hardware"]["gpu"]}`.
 The CPU path uses {benchmark["hardware"]["cpu_threads"]} threads. The benchmark
 uses the first {len(benchmark["sample_ids"])} sorted validation IDs, FP32,
-concurrency1, and three untimed warm-up batches for each configuration.
+concurrency 1, and three untimed warm-up batches for each configuration.
 This measures local warmed inference without HTTP/network overhead.
 
 {table(["Device", "Batch", "Timed batches", "Bundle load, ms", "Batch p50, ms", "Batch p95, ms", "Images/s", "Peak allocated VRAM, MiB", "Lifetime peak RSS, MiB"], perf)}
@@ -564,6 +610,7 @@ This measures local warmed inference without HTTP/network overhead.
 
 {" ".join(improvements)} The optimization changes batch policy only; these
 quality comparisons use identical images and the same released weights.
+{parity_note}
 Batch latency is not per-image request latency. Forward timing includes resize,
 normalization, model execution, NMS and coordinate restoration, using preloaded
 device inputs. Its throughput excludes input transfer and CPU output materialization.
@@ -574,7 +621,7 @@ reported separately in [benchmark JSON](../{study}/benchmark.json). Decode/tenso
 timing includes image-file I/O and excludes preceding checksum verification.
 Bundle load timing includes integrity validation and model construction, but
 excludes Python imports and initial CUDA context creation; cache state is uncontrolled.
-It does not establish full process startup. p99 is omitted below1000 timed batches.
+It does not establish full process startup. p99 is omitted below 1,000 timed batches.
 GPU memory is PyTorch peak allocated/reserved, excluding driver/other processes;
 process RSS is a lifetime high-water mark including preloaded data and previous
 configurations. These measurements are not production SLA guarantees.
@@ -588,7 +635,7 @@ exact evaluation report. Integrity and compatibility failures prevent readiness;
 inference does not silently substitute checkpoints or simulated predictions.
 See [reproducibility](REPRODUCIBILITY.md) and [API semantics](API.md).
 
-The source code is MIT; dataset images/labels remain CC BY4.0 with author
+The source code is MIT; dataset images/labels remain CC BY 4.0 with author
 attribution. Pretrained-model and underlying COCO image terms remain applicable;
 no unrestricted commercial weight rights are asserted. See
 [third-party terms](THIRD_PARTY.md) and the release metadata's licensing record.
@@ -610,7 +657,7 @@ def error_analysis(context: dict) -> str:
         ("tp", "Matched correct-class boxes"),
         ("fp", "Unmatched/wrong-class predictions"),
         ("fn", "Unmatched ground-truth boxes"),
-        ("poor_localization_candidates", "FP with same-class unmatched IoU in[0.1,0.5)"),
+        ("poor_localization_candidates", "FP with same-class unmatched IoU in [0.1,0.5)"),
         ("overlapping_prediction_pairs", "Prediction pairs with IoU≥0.5, regardless of class"),
     ):
         categories.append(
@@ -670,9 +717,30 @@ def error_analysis(context: dict) -> str:
             ]
         )
     robust_rows = []
-    clean = c["robustness"]["unperturbed_same_subset"]
+    control = c["robustness_control"]
+    if control is not None:
+        clean = control["unperturbed_same_subset"]
+        clean_name = "Unperturbed clean control, batch 1"
+        robustness_reference = (
+            "The clean reference is a supplementary batch-1 evaluation of the frozen released "
+            "weights on the identical IDs. This matches the one-image-at-a-time perturbation "
+            "pipeline; its artifact, weight, manifest and threshold identities are checked. "
+            "The original batched clean reference remains unchanged in robustness.json as "
+            "historical evidence. The companion robustness-control.json supplies the controlled "
+            "baseline used for the deltas below. No test images or model/threshold changes "
+            "are involved in this additional validation-only control."
+        )
+    else:
+        clean = c["robustness"]["unperturbed_same_subset"]
+        clean_name = "Unperturbed original batched reference"
+        robustness_reference = (
+            "The clean reference reuses predictions from the main batched validation pass, "
+            "while perturbations are evaluated one image at a time. Batch-dependent numerical "
+            "differences therefore confound the synthetic deltas; they do not isolate a "
+            "perturbation-only causal effect."
+        )
     for name, result in [
-        ("Unperturbed identical subset", clean),
+        (clean_name, clean),
         *c["robustness"]["variants"].items(),
     ]:
         robust_rows.append(
@@ -739,8 +807,8 @@ def error_analysis(context: dict) -> str:
     return f"""# Error analysis
 
 The final holdout contains **{holdout["images"]}** images. At the validation-selected
-score threshold **{holdout["threshold"]}**, same-class IoU0.50 matching produces
-**{operating["tp"]}TP, {operating["fp"]}FP and {operating["fn"]}FN**;
+score threshold **{holdout["threshold"]}**, same-class IoU 0.50 matching produces
+**{operating["tp"]} TP, {operating["fp"]} FP and {operating["fn"]} FN**;
 micro precision/recall/F1 are **{number(operating["precision"])}/
 {number(operating["recall"])}/{number(operating["f1"])}**. These measured errors
 describe candidate ROI patches from this dataset, not a production defect rate.
@@ -768,7 +836,7 @@ Rare-class estimates depend on few samples, including only
 
 ## Confusions and available slices
 
-The separate confusion matrix matches class-agnostically at IoU0.50, then records
+The separate confusion matrix matches class-agnostically at IoU 0.50, then records
 truth rows and predicted columns, including a background/missed category. Its
 counts have different semantics from same-class TP/FP/FN. Largest observed
 class-to-class confusions are:
@@ -791,7 +859,7 @@ the final test evaluation. The validation tradeoff is:
 {table(["Score threshold", "Precision", "Recall", "F1", "TP", "FP", "FN"], threshold_rows)}
 
 Held-out detection scores across classes are binned below. Observed precision uses
-the ranked same-class IoU0.50 matching outcome and weights each retained detection
+the ranked same-class IoU 0.50 matching outcome and weights each retained detection
 equally. Bins include low-score candidates below the operating threshold.
 
 {table(["Score bin", "Detections", "Mean score", "Observed precision"], confidence_rows)}
@@ -807,14 +875,15 @@ affect these observations. Per-class curves and histograms remain in
 The following comparisons all use the same **{len(c["robustness"]["images"])} validation images**:
 the first sorted IDs, with unchanged labels and geometry. The reference is their
 own clean-subset result, not full-validation performance. Perturbations are
-brightness×0.7, Gaussian blur radius1 and JPEG quality50. They are artificial
+brightness×0.7, Gaussian blur radius 1 and JPEG quality 50. They are artificial
 stress tests rather than measured naturally occurring production conditions.
+{robustness_reference}
 
 {table(["Variant", "Images", "AP50", "AP50:.95", "ΔAP50:.95 vs clean", "Precision", "Recall"], robust_rows)}
 
 ## Qualitative sample selection
 
-The evaluator takes up to12 evenly spaced images across the entire sorted holdout,
+The evaluator takes up to 12 evenly spaced images across the entire sorted holdout,
 then adds maximal observed TP, FP, FN, poor-localization-candidate and overlapping
 prediction cases when the category is nonzero. Ties use a deterministic image-ID
 rule. Reasons are preserved in [examples.json](../{study}/holdout/examples.json).
@@ -895,7 +964,7 @@ taxonomy, artifact and report identities.
 
 ## Recreate the environment and acquire data
 
-Python3.12 is supported. The demonstrated Windows training environment was:
+Python 3.12 is supported. The demonstrated Windows training environment was:
 
 {environment}
 
@@ -918,9 +987,9 @@ With uv, both official indexes must be considered using
 `--index-strategy unsafe-best-match` when installing the requirements snapshots.
 
 Acquisition downloads only the pinned author archive from
-{acquisition["record"]}, checks size{acquisition["archive_bytes"]}bytes,
-MD5`{acquisition["archive_md5"]}` and
-SHA256`{acquisition["archive_sha256"]}`, and extracts the YOLO copy and metadata.
+{acquisition["record"]}, checks size {acquisition["archive_bytes"]} bytes,
+MD5 `{acquisition["archive_md5"]}` and
+SHA256 `{acquisition["archive_sha256"]}`, and extracts the YOLO copy and metadata.
 Raw data remains outside Git. Verify the reproduced canonical manifest digest
 against **`{c["manifest"]["manifest_digest"]}`**. JSON file SHA256 is a separate
 byte-level identity, while canonical content hashing ignores formatting.
@@ -934,7 +1003,7 @@ the committed blob and working manifest have the same training-bound file SHA256
 The independent source-format audit checks original COCO/YOLO class and coordinate
 semantics, all accepted image and annotation hashes, decoded dimensions and EXIF.
 It reports **{c["annotation_check"]["successfully_compared_images"]}** accepted
-images with status`{c["annotation_check"]["status"]}`. The metric-reference report
+images with status `{c["annotation_check"]["status"]}`. The metric-reference report
 cross-checks supported no-crowd AP behavior against pycocotools using explicitly
 synthetic fixtures; it is not evidence of trained accuracy.
 
@@ -947,15 +1016,15 @@ synthetic fixtures; it is not evidence of trained accuracy.
 Fresh study/release IDs preserve existing evidence. The runner performs both
 augmentation variants, selects the best validation AP50:.95 checkpoint, selects a
 validation micro-F1 threshold, writes the decision, evaluates the final holdout,
-packages a bundle, and benchmarks CPU/GPU batch1 versus4 on an identical subset.
+packages a bundle, and benchmarks CPU/GPU batch 1 versus 4 on an identical subset.
 Before selection, it verifies exact initial parameter/buffer equality and records
 `initialization-parity.json`, including tensor count and an initial-tensor digest.
 Individual commands and epoch-boundary resume are documented in [TRAINING.md](TRAINING.md).
 
 {table(["Run", "Seed", "Epochs", "Batch", "LR", "Horizontal flip p", "AMP", "Elapsed min"], configs)}
 
-AdamW, weight decay0.0005 and cosine scheduling are recorded in each run's config.
-BatchNorm running statistics remain frozen; gradients are clipped to norm10.
+AdamW, weight decay 0.0005 and cosine scheduling are recorded in each run's config.
+BatchNorm running statistics remain frozen; gradients are clipped to norm 10.
 Checkpoints retain model, optimizer, scheduler, scaler and RNG states. Resume
 requires the original configuration, epoch budget, run directory and best/last
 checkpoints. Training was local and single-GPU; there is no cloud dependency.
@@ -1037,13 +1106,13 @@ python scripts/summarize_study.py --study {study} --release {release}
 
 Tests use generated synthetic fixtures and one attributed real image/label pair;
 they do not repeat full GPU training. See the committed CI workflow and validation
-records for actual checks. The failed initial AMP/.001 study and confounded
-FP32/.0003 diagnostic replay remain disclosed in [ERROR_ANALYSIS.md](ERROR_ANALYSIS.md).
+records for actual checks. The failed initial AMP/0.001 study and confounded
+FP32/0.0003 diagnostic replay remain disclosed in [ERROR_ANALYSIS.md](ERROR_ANALYSIS.md).
 Natural acquisition metadata is absent, source grouping is a heuristic, and rare
 classes limit inference strength. No production SLA, calibrated probability,
 manufacturing deployment or safety-critical claim follows from these results.
 
-The source code is MIT, PCB-IND data is CC BY4.0, and pretrained/COCO terms remain
+The source code is MIT, PCB-IND data is CC BY 4.0, and pretrained/COCO terms remain
 separate. Attribution and model-use limitations are recorded in
 [THIRD_PARTY.md](THIRD_PARTY.md), release metadata and licensing JSON.
 
