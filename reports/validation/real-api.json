@@ -1,0 +1,224 @@
+{
+  "schema_version": "1",
+  "captured_at_utc": "2026-11-02T23:24:56.784474+00:00",
+  "source_revision_at_capture": "2fef9e671f2dd1f1bed539f07e94564690ad5a0d",
+  "release": "releases/pcb-ind-ssdlite-v1",
+  "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+  "fixture": {
+    "image": "tests/fixtures/pcb-ind/5810_t_007.jpg",
+    "sha256": "683c337a42c5c99d4b7c2d3de92343984eb8c2c95bb75743161988d5e4a73214",
+    "attribution": "PCB-IND v4 by Hao Yan, Fujian Polytechnic Normal University; CC BY 4.0",
+    "source": "https://zenodo.org/records/19723114",
+    "manifest": "tests/fixtures/pcb-ind/fixture.json",
+    "split": "training; demonstration only, not evaluation evidence"
+  },
+  "service_sources_sha256": {
+    "src/inspection_dl/api.py": "f165af3d73305b84e6f618bdbb068f058a379974d1043ebb10654602295e7a5f",
+    "src/inspection_dl/schemas.py": "84e0d487db721c29005a2d24563731e7edd9d9c93f16b16e912fad4f5e167772",
+    "src/inspection_dl/bundle.py": "4792db289a510e49fb33132b34f61348ffea0830514d3bd8174ce6ed31320107",
+    "src/inspection_dl/model.py": "151d2f75072b9bf086cd19020aef5d46495512a2850388d2d2602581f42f90df"
+  },
+  "limits": [
+    "One local HTTP demonstration; latency values are not warmed benchmark distributions or an SLA.",
+    "The fixed sample is a training image; generalization is assessed in the separate final holdout report."
+  ],
+  "server_command": ".venv-cpu/Scripts/python.exe -m inspection_dl.api --bundle releases/pcb-ind-ssdlite-v1 --device cpu --port 8051",
+  "runtime": {
+    "torch": "2.7.1+cpu",
+    "torchvision": "0.22.1+cpu",
+    "cuda_available": false
+  },
+  "http": {
+    "readiness": {
+      "ready": true,
+      "backend": "trained",
+      "simulated": false,
+      "model_version": "pcb-ind-ssdlite-v1"
+    },
+    "model_metadata": {
+      "schema_version": "1",
+      "architecture": "ssdlite320_mobilenet_v3_large",
+      "preprocessing": "ssdlite320_rgb_unit_v1",
+      "coordinate_system": "xyxy_pixels_original_image",
+      "input_size": [
+        320,
+        320
+      ],
+      "model_version": "pcb-ind-ssdlite-v1",
+      "taxonomy_version": "pcb-ind-v4-1",
+      "classes": [
+        {
+          "id": 1,
+          "name": "mouse_bite"
+        },
+        {
+          "id": 2,
+          "name": "missing_copper"
+        },
+        {
+          "id": 3,
+          "name": "scratch"
+        },
+        {
+          "id": 4,
+          "name": "spurious_copper"
+        },
+        {
+          "id": 5,
+          "name": "copper_burr"
+        },
+        {
+          "id": 6,
+          "name": "stain"
+        },
+        {
+          "id": 7,
+          "name": "short"
+        },
+        {
+          "id": 8,
+          "name": "open"
+        }
+      ],
+      "weights_sha256": "28271a688aa7335521bb7725423fd6ea6622f3d1964bfaed83dd97b4f0ff34d9",
+      "evaluation_sha256": "acc89d13a50caf389f74bc2cb200b0558fcbe6f6ead6e7f94f6e5ab5817b2dfd",
+      "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+      "dataset_id": "pcb-ind-zenodo-19723114-v4",
+      "dataset_manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+      "training_run_id": "rtx4060-study-v2-flip",
+      "confidence_threshold": 0.2,
+      "nms_threshold": 0.55,
+      "max_detections": 100,
+      "runtime": {
+        "python": "3.12.15",
+        "torch": "2.7.1+cu126",
+        "torchvision": "0.22.1+cu126"
+      },
+      "licensing": {
+        "coco_terms": "https://cocodataset.org/#termsofuse",
+        "dataset": {
+          "authors": "Hao Yan and PCB-IND authors; see saved Zenodo metadata",
+          "license": "CC-BY-4.0",
+          "name": "PCB-IND v4",
+          "source": "https://zenodo.org/records/19723114"
+        },
+        "framework_code": {
+          "source": "https://github.com/pytorch/vision/tree/v0.22.1",
+          "torchvision": "BSD-3-Clause"
+        },
+        "model_use": "Noncommercial research and personal portfolio evaluation; no assertion of unrestricted commercial weight rights. TorchVision pretrained-model terms and underlying COCO image terms remain applicable.",
+        "notices": "docs/THIRD_PARTY.md",
+        "pretrained_initialization": {
+          "initialization": "COCO backbone and box regressor; new normal(0,.03) classification head",
+          "sha256": "a79551df90c79834bcd3bb3845ef9d966b5449a3a9b2833ae8404778ca5d65d2",
+          "url": "https://download.pytorch.org/models/ssdlite320_mobilenet_v3_large_coco-a79551df.pth"
+        },
+        "pretrained_terms": "https://github.com/pytorch/vision/blob/v0.22.1/README.md#pre-trained-model-license",
+        "project_code": "MIT; excludes dataset images and model weights"
+      },
+      "backend": "trained",
+      "simulated": false
+    },
+    "cases": [
+      {
+        "description": "Fixed attributed training-split CI image at released threshold 0.2",
+        "method": "POST",
+        "endpoint": "/v1/predict",
+        "media_type": "image/jpeg",
+        "status": 200,
+        "response": {
+          "schema_version": "1",
+          "provider": "visual-inspection-dl",
+          "backend": "trained",
+          "simulated": false,
+          "model_version": "pcb-ind-ssdlite-v1",
+          "taxonomy_version": "pcb-ind-v4-1",
+          "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+          "image": {
+            "width": 300,
+            "height": 300
+          },
+          "coordinate_system": "xyxy_pixels_original_image",
+          "confidence_threshold": 0.2,
+          "nms_threshold": 0.55,
+          "invalid_predictions_rejected": 0,
+          "detections": [
+            {
+              "class_id": 2,
+              "label": "missing_copper",
+              "confidence": 0.3434527814388275,
+              "box": {
+                "x_min": 118.28836059570312,
+                "y_min": 157.72909545898438,
+                "x_max": 177.40167236328125,
+                "y_max": 191.3099822998047
+              }
+            },
+            {
+              "class_id": 4,
+              "label": "spurious_copper",
+              "confidence": 0.3285665512084961,
+              "box": {
+                "x_min": 116.92534637451172,
+                "y_min": 108.71612548828125,
+                "x_max": 185.95518493652344,
+                "y_max": 183.04238891601562
+              }
+            }
+          ],
+          "timing_ms": {
+            "decode_preprocess": 23.925799992866814,
+            "model_inference": 68.02769997739233,
+            "response_postprocess": 0.9202999935951084,
+            "request_total": 93.14799998537637
+          }
+        }
+      },
+      {
+        "description": "Same image at request threshold 1.0 checks empty-result semantics; not a claim of a defect-free image",
+        "method": "POST",
+        "endpoint": "/v1/predict?threshold=1",
+        "media_type": "image/jpeg",
+        "status": 200,
+        "response": {
+          "schema_version": "1",
+          "provider": "visual-inspection-dl",
+          "backend": "trained",
+          "simulated": false,
+          "model_version": "pcb-ind-ssdlite-v1",
+          "taxonomy_version": "pcb-ind-v4-1",
+          "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+          "image": {
+            "width": 300,
+            "height": 300
+          },
+          "coordinate_system": "xyxy_pixels_original_image",
+          "confidence_threshold": 1.0,
+          "nms_threshold": 0.55,
+          "invalid_predictions_rejected": 0,
+          "detections": [],
+          "timing_ms": {
+            "decode_preprocess": 1.4626000192947686,
+            "model_inference": 54.522099992027506,
+            "response_postprocess": 0.8715000003576279,
+            "request_total": 57.17260000528768
+          }
+        }
+      },
+      {
+        "description": "Corrupt image bytes must produce an explicit error",
+        "method": "POST",
+        "endpoint": "/v1/predict",
+        "media_type": "image/jpeg",
+        "status": 400,
+        "response": {
+          "error": {
+            "code": "invalid_image",
+            "message": "Image could not be decoded."
+          }
+        }
+      }
+    ]
+  },
+  "server_stopped": true
+}

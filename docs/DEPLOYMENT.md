@@ -13,7 +13,7 @@ From the repository root on Windows with `uv` installed:
 uv venv .venv-cpu --python 3.12
 uv pip install --python .venv-cpu/Scripts/python.exe --index-strategy unsafe-best-match -r requirements-cpu.txt
 uv pip install --python .venv-cpu/Scripts/python.exe --no-deps -e .
-.venv-cpu/Scripts/python.exe -m inspection_dl.api --bundle artifacts/pcb-ind-ssdlite-v1 --device cpu
+.venv-cpu/Scripts/python.exe -m inspection_dl.api --bundle releases/pcb-ind-ssdlite-v1 --device cpu
 ```
 
 On Linux, use `.venv-cpu/bin/python` instead of `.venv-cpu/Scripts/python.exe`.
@@ -45,7 +45,7 @@ unhealthy container when model initialization fails.
 
 ```powershell
 docker build -t visual-inspection-dl:local .
-docker run --rm --name inspection-dl -p 127.0.0.1:8000:8000 --mount "type=bind,source=$((Resolve-Path artifacts/pcb-ind-ssdlite-v1).Path),target=/models/release,readonly" -e INSPECTION_DL_BUNDLE=/models/release visual-inspection-dl:local
+docker run --rm --name inspection-dl -p 127.0.0.1:8000:8000 --mount "type=bind,source=$((Resolve-Path releases/pcb-ind-ssdlite-v1).Path),target=/models/release,readonly" -e INSPECTION_DL_BUNDLE=/models/release visual-inspection-dl:local
 ```
 
 For Linux shells, provide the absolute host release path in the bind mount instead.
@@ -75,7 +75,22 @@ ports restricted to loopback. The running user was UID 10001 and the runtime rep
 PyTorch 2.7.1+cpu, torchvision 0.22.1+cpu, and no CUDA. Both temporary containers were
 removed. [Container evidence](../reports/validation/container.json) records the tested
 image ID, commands, and results. Its fixture outputs make no trained-model quality
-claim; a trained bundle mounted read-only is checked separately after training.
+claim.
+
+After training, the released `pcb-ind-ssdlite-v1` bundle was demonstrated over actual
+HTTP in both the Windows CPU environment and a rebuilt Linux CPU container. The fixed
+attributed 300×300 training fixture produced two proposals at the released threshold
+0.2; this demonstrates functioning inference and makes no holdout-quality claim.
+Both responses reported `backend: trained`, `simulated: false`, and the expected
+artifact digest. A request threshold of 1.0 produced a successful empty result, and
+corrupt JPEG bytes returned HTTP 400. The container used a read-only release mount,
+UID 10001, and host publication restricted to loopback. Its installed API, schema,
+bundle-loader, and model source hashes were verified against the working tree.
+The temporary server and container were stopped after capture. Actual responses and
+commands are in [native CPU evidence](../reports/validation/real-api.json) and
+[container evidence](../reports/validation/real-container.json). The latter separately
+records its offline evaluation-module snapshot; that module does not serve requests.
+
 The separately installed Windows CPU environment was verified with Python 3.12.15,
 PyTorch 2.7.1+cpu, torchvision 0.22.1+cpu, and `cuda_available: false`. Dependency
 consistency passed for all 44 installed packages. All 99 practical tests passed in
