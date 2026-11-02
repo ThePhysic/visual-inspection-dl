@@ -1,0 +1,104 @@
+{
+  "schema_version": "1",
+  "recorded_at_utc": "2026-11-02T23:00:11.775275+00:00",
+  "build_command": "docker build -t visual-inspection-dl:local .",
+  "build_succeeded": true,
+  "image_id": "sha256:3852f654826b57ebe080d221e856185c8ba0ed278e82641fe4942c3697274c3b",
+  "image_created_utc": "2026-11-02T22:57:26.435156172Z",
+  "dockerfile_sha256": "877e80cf8a42819d0fcfa35a86be6b005711675fff212fcac5f0e8ffa58fbb2a",
+  "cpu_lock_sha256": "815b43d532424cbbdcf2960102bd3e3353a1963577d277e8767bc3ddc8ba716a",
+  "image_user": "inspection",
+  "results": [
+    {
+      "scenario": "explicit-fixture",
+      "command": "docker run --rm -d --name inspection-dl-smoke-ba29e933b0 -p 127.0.0.1:8031:8000 -e INSPECTION_DL_BACKEND=fixture visual-inspection-dl:local",
+      "runtime": {
+        "uid": 10001,
+        "torch": "2.7.1+cpu",
+        "torchvision": "0.22.1+cpu",
+        "cuda_available": false
+      },
+      "health": {
+        "status": "alive",
+        "schema_version": "1"
+      },
+      "readiness_status": 200,
+      "readiness": {
+        "ready": true,
+        "backend": "fixture",
+        "simulated": true,
+        "model_version": "simulated-fixture-v1"
+      },
+      "prediction": {
+        "schema_version": "1",
+        "provider": "visual-inspection-dl",
+        "backend": "fixture",
+        "simulated": true,
+        "model_version": "simulated-fixture-v1",
+        "taxonomy_version": "simulated-fixture-v1",
+        "artifact_digest": "simulated-no-model-artifact",
+        "image": {
+          "width": 80,
+          "height": 40
+        },
+        "coordinate_system": "xyxy_pixels_original_image",
+        "confidence_threshold": 0.25,
+        "nms_threshold": 0.55,
+        "detections": [
+          {
+            "class_id": 1,
+            "label": "simulated-defect",
+            "confidence": 0.75,
+            "box": {
+              "x_min": 20.0,
+              "y_min": 10.0,
+              "x_max": 60.0,
+              "y_max": 30.0
+            }
+          }
+        ],
+        "timing_ms": {
+          "decode_preprocess": 20.839918999968177,
+          "model_inference": 0.0063019999743119115,
+          "response_postprocess": 0.1990110000065215,
+          "request_total": 21.871863999990637
+        }
+      },
+      "published_host_ip": "127.0.0.1",
+      "healthcheck_configured": true,
+      "healthcheck_status_during_short_smoke": "healthy",
+      "container_stopped_and_removed": true
+    },
+    {
+      "scenario": "missing-bundle",
+      "command": "docker run --rm -d --name inspection-dl-smoke-6d1fe9aaf4 -p 127.0.0.1:8032:8000 visual-inspection-dl:local",
+      "runtime": {
+        "uid": 10001,
+        "torch": "2.7.1+cpu",
+        "torchvision": "0.22.1+cpu",
+        "cuda_available": false
+      },
+      "health": {
+        "status": "alive",
+        "schema_version": "1"
+      },
+      "readiness_status": 503,
+      "readiness": {
+        "ready": false,
+        "error": {
+          "code": "model_unavailable",
+          "message": "A valid model bundle is not ready."
+        }
+      },
+      "published_host_ip": "127.0.0.1",
+      "healthcheck_configured": true,
+      "healthcheck_status_during_short_smoke": "starting",
+      "container_stopped_and_removed": true
+    }
+  ],
+  "limitations": [
+    "Fixture outputs are explicitly simulated and do not demonstrate trained-model quality.",
+    "This short smoke checks readiness over HTTP and healthcheck configuration; it does not wait for the missing-model container to reach Docker unhealthy after retries.",
+    "A read-only trained-model bundle mount is validated separately after training."
+  ]
+}
