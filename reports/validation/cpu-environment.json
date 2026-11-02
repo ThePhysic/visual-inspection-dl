@@ -1,0 +1,170 @@
+{
+  "schema_version": "1",
+  "recorded_at_utc": "2026-11-02T22:55:54.873668+00:00",
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.7.1+cpu",
+    "torchvision": "0.22.1+cpu",
+    "cuda_available": false,
+    "dependencies": {
+      "annotated-types": "0.8.0",
+      "anyio": "4.16.0",
+      "certifi": "2026.10.23",
+      "click": "8.5.0",
+      "colorama": "0.4.6",
+      "contourpy": "1.4.0",
+      "cycler": "0.12.1",
+      "fastapi": "0.116.1",
+      "filelock": "4.2.7",
+      "fonttools": "4.68.0",
+      "fsspec": "2026.9.0",
+      "h11": "0.16.0",
+      "httpcore": "1.0.9",
+      "httpx": "0.28.1",
+      "idna": "3.20",
+      "iniconfig": "2.3.1",
+      "Jinja2": "3.1.6",
+      "kiwisolver": "1.5.1",
+      "MarkupSafe": "3.0.4",
+      "matplotlib": "3.10.5",
+      "mpmath": "1.3.0",
+      "networkx": "3.7",
+      "numpy": "2.2.6",
+      "packaging": "26.3",
+      "pillow": "11.3.0",
+      "pluggy": "1.7.0",
+      "pydantic": "2.11.7",
+      "pydantic_core": "2.33.2",
+      "Pygments": "2.21.0",
+      "pyparsing": "3.3.3",
+      "pytest": "8.4.1",
+      "python-dateutil": "4.0.0",
+      "ruff": "0.12.9",
+      "scipy": "1.16.1",
+      "setuptools": "84.2.1",
+      "starlette": "0.47.3",
+      "sympy": "1.14.0",
+      "torch": "2.7.1+cpu",
+      "torchvision": "0.22.1+cpu",
+      "typing-inspection": "0.4.4",
+      "typing_extensions": "4.16.0",
+      "tzdata": "2026.6",
+      "uvicorn": "0.35.0",
+      "visual-inspection-dl": "0.1.0"
+    }
+  },
+  "setup_commands": [
+    "uv venv .venv-cpu --python 3.12",
+    "uv pip install --python .venv-cpu/Scripts/python.exe --index-strategy unsafe-best-match -r requirements-cpu.txt",
+    "uv pip install --python .venv-cpu/Scripts/python.exe --no-deps -e ."
+  ],
+  "cpu_lock_sha256": "815b43d532424cbbdcf2960102bd3e3353a1963577d277e8767bc3ddc8ba716a",
+  "dependency_check": {
+    "command": "uv pip check --python .venv-cpu/Scripts/python.exe",
+    "checked_packages": 44,
+    "result": "All installed packages are compatible"
+  },
+  "tests": {
+    "command": ".venv-cpu/Scripts/python.exe -m pytest -q",
+    "passed": 99,
+    "failed": 0,
+    "warnings": 1,
+    "duration_seconds": 24.7,
+    "warning": "Third-party Starlette TestClient imports deprecated anyio.abc.BlockingPortal alias.",
+    "execution_timestamp": "Exact test start/end timestamps were not captured; this record preserves the observed output from this session."
+  },
+  "http_smoke": {
+    "captured_at_utc": "2026-11-02T22:53:25.062000+00:00",
+    "driver": "An inline Python subprocess/urllib script ran two hidden local-only servers, issued HTTP requests, asserted responses, and stopped both processes in finally blocks.",
+    "server_commands": [
+      ".venv-cpu/Scripts/python.exe -m inspection_dl.api --fixture --port 8021",
+      ".venv-cpu/Scripts/python.exe -m inspection_dl.api --bundle tmp/service-smoke-cpu/missing-bundle --port 8022"
+    ],
+    "source_evidence_sha256": "b96677a49f292bbda67aee15ee97ffb13b954f36fbf19887146a92061676bdb7",
+    "evidence": {
+      "torch": "2.7.1+cpu",
+      "torchvision": "0.22.1+cpu",
+      "cuda_available": false,
+      "results": [
+        {
+          "scenario": "explicit-fixture",
+          "ready": {
+            "ready": true,
+            "backend": "fixture",
+            "simulated": true,
+            "model_version": "simulated-fixture-v1"
+          },
+          "prediction": {
+            "schema_version": "1",
+            "provider": "visual-inspection-dl",
+            "backend": "fixture",
+            "simulated": true,
+            "model_version": "simulated-fixture-v1",
+            "taxonomy_version": "simulated-fixture-v1",
+            "artifact_digest": "simulated-no-model-artifact",
+            "image": {
+              "width": 80,
+              "height": 40
+            },
+            "coordinate_system": "xyxy_pixels_original_image",
+            "confidence_threshold": 0.25,
+            "nms_threshold": 0.55,
+            "detections": [
+              {
+                "class_id": 1,
+                "label": "simulated-defect",
+                "confidence": 0.75,
+                "box": {
+                  "x_min": 20.0,
+                  "y_min": 10.0,
+                  "x_max": 60.0,
+                  "y_max": 30.0
+                }
+              }
+            ],
+            "timing_ms": {
+              "decode_preprocess": 20.901999989291653,
+              "model_inference": 0.003200024366378784,
+              "response_postprocess": 0.05970001802779734,
+              "request_total": 21.20170000125654
+            }
+          }
+        },
+        {
+          "scenario": "missing-bundle",
+          "readiness_status": 503,
+          "ready": {
+            "ready": false,
+            "error": {
+              "code": "model_unavailable",
+              "message": "A valid model bundle is not ready."
+            }
+          }
+        }
+      ]
+    },
+    "servers_stopped": true
+  },
+  "docker_availability_observations": [
+    {
+      "observation": "Initial deployment check in this session; exact timestamp not captured",
+      "command": "docker version",
+      "linux_daemon_available": false,
+      "client_version": "29.9.1",
+      "reason": "Docker Desktop Linux engine named pipe dockerDesktopLinuxEngine was absent."
+    },
+    {
+      "observation": "Later recheck with sandbox escalation before writing this report",
+      "linux_daemon_available": true,
+      "server_version": "29.9.1",
+      "server_platform": "Docker Desktop Linux",
+      "note": "Availability changed during the session. Container build/run results are separate from these CPU-environment checks."
+    }
+  ],
+  "limits": [
+    "This report records the earlier 99-test CPU run; additional tests added later are validated separately.",
+    "Fixtures and untrained architecture smoke weights do not establish trained-model quality.",
+    "Full training, trained-bundle HTTP and container demonstrations are recorded separately."
+  ]
+}
