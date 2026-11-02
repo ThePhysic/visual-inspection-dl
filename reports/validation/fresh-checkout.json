@@ -1,10 +1,10 @@
 {
-  "checkout_commit": "68fba9a0c02379a6549ce5b452e8b97137088eb6",
-  "command": "git clone --no-local . tmp/release-checkout; CPU ASGI prediction and byte-level evidence validation",
+  "checkout_commit": "c2d5656ac18350b25bce9e7f44a9539e403e534b",
+  "command": "git clone --no-local . tmp/release-checkout, then fetch and detached checkout of the fixed revision; CPU ASGI prediction and byte-level evidence validation",
   "source_loaded_from_checkout": true,
   "raw_dataset_and_training_checkpoints_absent": true,
   "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
-  "documentation_inputs_verified": 53,
+  "documentation_inputs_verified": 54,
   "document_hashes_verified": 3,
   "readiness_status": 200,
   "prediction_transport": "in-process ASGI client; actual network HTTP separately verified in real-api.json and real-container.json",
@@ -50,10 +50,10 @@
       }
     ],
     "timing_ms": {
-      "decode_preprocess": 22.457799990661442,
-      "model_inference": 72.27879998390563,
-      "response_postprocess": 0.9135000000242144,
-      "request_total": 96.05819999706
+      "decode_preprocess": 25.262299983296543,
+      "model_inference": 69.83520000358112,
+      "response_postprocess": 1.1541999992914498,
+      "request_total": 96.48540001944639
     }
   }
 }
