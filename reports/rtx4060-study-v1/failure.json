@@ -1,0 +1,17 @@
+{
+  "study_id": "rtx4060-study-v1",
+  "status": "failed_before_first_completed_epoch",
+  "run_id": "rtx4060-study-v1-no-flip",
+  "error": "RuntimeError: nonfinite training loss",
+  "configuration": {
+    "learning_rate": 0.001,
+    "amp": true,
+    "batch_size": 8,
+    "planned_epochs": 12,
+    "seed": 42,
+    "device": "cuda"
+  },
+  "evidence": "Training process exited 1 at train.py guard on total loss; no history.json or epoch checkpoint was produced. Initial run.json and initialized.pt remain under ignored runs/rtx4060-study-v1-no-flip.",
+  "holdout_accessed": false,
+  "interpretation": "Failed mixed-precision attempt; cause investigated before a separately identified rerun. No accuracy result is attributed to this attempt."
+}

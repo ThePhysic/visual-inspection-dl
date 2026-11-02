@@ -1,0 +1,28 @@
+{
+  "source_revision": "f6e8eeb80ef1f5444a6fe1b84ace43c025de38f1",
+  "source_status": [
+    " M .gitignore",
+    " M docs/DATASET.md",
+    " M docs/TRAINING.md",
+    " M src/inspection_dl/data.py",
+    " M src/inspection_dl/evaluate.py",
+    " M src/inspection_dl/metrics.py",
+    " M src/inspection_dl/train.py",
+    " M tests/test_data.py",
+    "?? Dockerfile",
+    "?? docs/DEPLOYMENT.md"
+  ],
+  "study_id": "rtx4060-study-v1",
+  "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "epochs_per_run": 12,
+  "batch_size": 8,
+  "seed": 42,
+  "architecture": "ssdlite320_mobilenet_v3_large",
+  "device": "cuda",
+  "comparison": "identical initialization/seed/budget; no flip vs horizontal flip p=.5",
+  "selection": "highest best-validation AP50:.95; no-flip wins a tie",
+  "threshold": "highest micro F1 at IoU .5 on validation; highest threshold wins a tie",
+  "holdout_policy": "selected checkpoint and threshold frozen before single test evaluation",
+  "optimization": "batch size 1 vs 4 on same validation subset, CPU and GPU; quality measured for both",
+  "budget": "two bounded runs; no test-guided retraining or unbounded search"
+}

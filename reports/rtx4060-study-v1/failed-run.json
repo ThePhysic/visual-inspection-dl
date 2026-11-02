@@ -1,0 +1,87 @@
+{
+  "run_id": "rtx4060-study-v1-no-flip",
+  "dataset_id": "pcb-ind-zenodo-19723114-v4",
+  "classes": [
+    {
+      "id": 1,
+      "name": "mouse_bite"
+    },
+    {
+      "id": 2,
+      "name": "missing_copper"
+    },
+    {
+      "id": 3,
+      "name": "scratch"
+    },
+    {
+      "id": 4,
+      "name": "spurious_copper"
+    },
+    {
+      "id": 5,
+      "name": "copper_burr"
+    },
+    {
+      "id": 6,
+      "name": "stain"
+    },
+    {
+      "id": 7,
+      "name": "short"
+    },
+    {
+      "id": 8,
+      "name": "open"
+    }
+  ],
+  "taxonomy_version": "pcb-ind-v4-1",
+  "config": {
+    "epochs": 12,
+    "batch_size": 8,
+    "learning_rate": 0.001,
+    "seed": 42,
+    "horizontal_flip_probability": 0.0,
+    "freeze_backbone": false,
+    "amp": true,
+    "pretrained_initialization": true,
+    "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+    "architecture": "ssdlite320_mobilenet_v3_large",
+    "preprocessing": "ssdlite320_rgb_unit_v1",
+    "optimizer": "AdamW",
+    "weight_decay": 0.0005,
+    "scheduler": "CosineAnnealingLR",
+    "batch_norm": "running statistics frozen during fine-tuning; affine params trainable",
+    "selection": "highest validation AP50:.95; earliest epoch wins ties",
+    "threads": 4
+  },
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.7.1+cu126",
+    "torchvision": "0.22.1+cu126",
+    "cuda": "12.6",
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU"
+  },
+  "pretrained": {
+    "url": "https://download.pytorch.org/models/ssdlite320_mobilenet_v3_large_coco-a79551df.pth",
+    "sha256": "a79551df90c79834bcd3bb3845ef9d966b5449a3a9b2833ae8404778ca5d65d2",
+    "initialization": "COCO backbone and box regressor; new normal(0,.03) classification head"
+  },
+  "train_images": 3352,
+  "validation_images": 714,
+  "holdout_accessed": false,
+  "source": {
+    "package_source_sha256": "c949fa43e4160f6ec1b632470dea822ef9babc12af168481a536c005ec2e29a2",
+    "revision": "e48b5631c015a233e2da52d94fd9f204237691ae",
+    "dirty": true,
+    "status": [
+      " M .gitignore",
+      "?? Dockerfile",
+      "?? docs/DEPLOYMENT.md",
+      "?? reports/"
+    ],
+    "git_available": true
+  }
+}

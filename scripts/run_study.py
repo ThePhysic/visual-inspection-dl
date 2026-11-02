@@ -33,11 +33,13 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--learning-rate", type=float, default=0.0003)
+    parser.add_argument("--amp", action="store_true", help="explicit mixed-precision experiment")
     parser.add_argument("--study-id", default="rtx4060-study-v1")
     parser.add_argument("--release", default="pcb-ind-ssdlite-v1")
     args = parser.parse_args()
-    if args.epochs < 1 or args.batch_size < 1:
-        parser.error("epochs and batch size must be positive")
+    if args.epochs < 1 or args.batch_size < 1 or args.learning_rate <= 0:
+        parser.error("epochs, batch size and learning rate must be positive")
     # IDs name local outputs only; never permit path traversal through an ID.
     for name in (args.study_id, args.release):
         if not name or any(char not in "abcdefghijklmnopqrstuvwxyz0123456789-_" for char in name):
@@ -62,6 +64,8 @@ def main() -> None:
         "study_id": args.study_id,
         "manifest_sha256": digest(args.manifest),
         "epochs_per_run": args.epochs,
+        "learning_rate": args.learning_rate,
+        "amp": args.amp,
         "batch_size": args.batch_size,
         "seed": 42,
         "architecture": "ssdlite320_mobilenet_v3_large",
@@ -88,8 +92,10 @@ def main() -> None:
             "42",
             "--device",
             args.device,
+            "--lr",
+            str(args.learning_rate),
         ]
-        if args.device.startswith("cuda"):
+        if args.amp:
             options.append("--amp")
         if variant == "flip":
             options.append("--horizontal-flip")
