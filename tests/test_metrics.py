@@ -121,3 +121,19 @@ def test_bootstrap_resamples_groups_reproducibly():
     assert report["recall_95_interval"] == [1, 1]
     assert report == grouped_bootstrap(records, predictions, CLASSES, 0.25, repetitions=20)
     assert np.isfinite(report["precision_95_interval"]).all()
+
+
+def test_filtered_prediction_exclusions_remain_visible_in_aggregate():
+    records = [record("one"), record("two")]
+    predictions = {
+        item["id"]: {
+            "boxes": item["boxes"],
+            "labels": item["labels"],
+            "scores": [0.9],
+            "invalid_predictions_rejected": index + 1,
+        }
+        for index, item in enumerate(records)
+    }
+    report = evaluate_detections(records, predictions, CLASSES)
+    assert report["map50"] == 1
+    assert report["invalid_predictions_rejected"] == 3
