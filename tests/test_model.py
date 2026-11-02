@@ -289,3 +289,74 @@ def test_interrupted_epoch_resume_matches_uninterrupted_optimizer_and_sampling(
             torch.testing.assert_close(
                 value, actual["optimizer"]["state"][key][name], rtol=0, atol=0
             )
+
+
+def test_nonfinite_training_failure_preserves_batch_audit(tmp_path, monkeypatch):
+    import inspection_dl.train as training
+
+    class NonfiniteFixture(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.ones(()))
+
+        def forward(self, images, targets):
+            return {"classification": self.weight * float("nan")}
+
+    monkeypatch.setattr(training, "build_detector", lambda *args, **kwargs: NonfiniteFixture())
+    records = []
+    for index, split in enumerate(("train", "val")):
+        image = tmp_path / f"fixture_{index}.png"
+        Image.new("RGB", (24, 32), color=(index, 0, 0)).save(image)
+        records.append(
+            {
+                "id": str(index),
+                "image": image.name,
+                "width": 24,
+                "height": 32,
+                "sha256": file_digest(image),
+                "group": str(index),
+                "split": split,
+                "boxes": [[1, 1, 10, 10]],
+                "labels": [1],
+            }
+        )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": "1",
+                "dataset_id": "synthetic-failure-only",
+                "taxonomy_version": "1",
+                "classes": [{"id": 1, "name": "fixture"}],
+                "records": records,
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "failed"
+    config = Namespace(
+        manifest=str(manifest),
+        data_root=str(tmp_path),
+        output=str(output),
+        epochs=1,
+        batch_size=1,
+        lr=0.0003,
+        seed=42,
+        threads=2,
+        device="cpu",
+        horizontal_flip=False,
+        freeze_backbone=False,
+        amp=False,
+        no_pretrained=True,
+        resume=None,
+    )
+    with pytest.raises(RuntimeError, match="nonfinite training loss"):
+        training.train(config)
+    failure = json.loads((output / "failure.json").read_text(encoding="utf-8"))
+    assert failure["kind"] == "nonfinite_forward_loss"
+    assert failure["epoch"] == failure["batch_index"] == 0
+    assert failure["sample_ids"] == ["0"]
+    assert failure["losses"] == {"classification": "nan"}
+    assert failure["nonfinite_parameter_names"] == []
+    assert failure["last_finite_batch"] is None
+    assert not (output / "best.pt").exists()

@@ -387,7 +387,8 @@ def train(args) -> dict:
         loss_sums = {}
         samples = 0
         skipped_amp_steps = 0
-        for images, targets, _ in loader:
+        last_finite_batch = None
+        for batch_index, (images, targets, sample_ids) in enumerate(loader):
             images = [image.to(args.device) for image in images]
             targets = [
                 {key: value.to(args.device) for key, value in target.items()} for target in targets
@@ -400,6 +401,31 @@ def train(args) -> dict:
                 losses = model(images, targets)
                 total = sum(losses.values())
             if not torch.isfinite(total):
+                atomic_json(
+                    output / "failure.json",
+                    {
+                        "kind": "nonfinite_forward_loss",
+                        "epoch": epoch,
+                        "batch_index": batch_index,
+                        "sample_ids": sample_ids,
+                        "losses": {
+                            key: float(value.detach())
+                            if torch.isfinite(value)
+                            else str(float(value.detach()))
+                            for key, value in losses.items()
+                        },
+                        "learning_rate": optimizer.param_groups[0]["lr"],
+                        "amp_scale": scaler.get_scale(),
+                        "nonfinite_parameter_names": [
+                            name
+                            for name, parameter in model.named_parameters()
+                            if not torch.isfinite(parameter).all()
+                        ],
+                        "last_finite_batch": last_finite_batch,
+                        "config": configuration,
+                        "source": provenance["source"],
+                    },
+                )
                 raise RuntimeError("nonfinite training loss")
             scaler.scale(total).backward()
             scaler.unscale_(optimizer)
@@ -411,6 +437,15 @@ def train(args) -> dict:
                 skipped_amp_steps += 1
             scaler.step(optimizer)
             scaler.update()
+            last_finite_batch = {
+                "batch_index": batch_index,
+                "sample_ids": sample_ids,
+                "loss": float(total.detach()),
+                "gradient_norm": float(gradient_norm)
+                if torch.isfinite(gradient_norm)
+                else str(float(gradient_norm)),
+                "amp_scale_after_update": scaler.get_scale(),
+            }
             for key, value in losses.items():
                 loss_sums[key] = loss_sums.get(key, 0.0) + float(value.detach()) * len(images)
             samples += len(images)
