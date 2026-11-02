@@ -8,8 +8,13 @@ from PIL import Image
 import pytest
 
 from inspection_dl.data import (
-    _fingerprint, _write_immutable, duplicate_groups, parse_yolo,
-    prepare_dataset, split_groups, validate_manifest,
+    _fingerprint,
+    _write_immutable,
+    duplicate_groups,
+    parse_yolo,
+    prepare_dataset,
+    split_groups,
+    validate_manifest,
 )
 
 
@@ -31,34 +36,65 @@ def test_attributed_real_data_fixture_decodes_and_preserves_annotation_geometry(
         image.load()
         assert image.size == (fixture["width"], fixture["height"])
         assert image.getexif().get(274, 1) == 1
-    boxes, labels = parse_yolo(annotation_bytes.decode("utf-8-sig"), fixture["width"], fixture["height"])
+    boxes, labels = parse_yolo(
+        annotation_bytes.decode("utf-8-sig"), fixture["width"], fixture["height"]
+    )
     assert boxes == fixture["boxes"]
     assert labels == fixture["labels"]
 
 
-@pytest.mark.parametrize("annotation", [
-    "0 0.5 0.5 0 0.2", "8 0.5 0.5 0.2 0.2", "0.2 0.5 0.5 0.2 0.2",
-    "0 nan 0.5 0.2 0.2", "0 0.5 inf 0.2 0.2", "0 0.01 0.5 0.2 0.2",
-    "0 0.5 0.5 0.2", "cat 0.5 0.5 0.2 0.2",
-    "0 0.5 0.5 0.2 0.2\n0 0.5 0.5 0.2 0.2",
-])
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        "0 0.5 0.5 0 0.2",
+        "8 0.5 0.5 0.2 0.2",
+        "0.2 0.5 0.5 0.2 0.2",
+        "0 nan 0.5 0.2 0.2",
+        "0 0.5 inf 0.2 0.2",
+        "0 0.01 0.5 0.2 0.2",
+        "0 0.5 0.5 0.2",
+        "cat 0.5 0.5 0.2 0.2",
+        "0 0.5 0.5 0.2 0.2\n0 0.5 0.5 0.2 0.2",
+    ],
+)
 def test_malformed_annotation_rejected(annotation):
     with pytest.raises(ValueError):
         parse_yolo(annotation, 300, 300)
 
 
 def manifest_fixture():
-    return {"schema_version": "1", "classes": [{"id": 1, "name": "defect"}],
-            "records": [{"id": "a", "image": "images/train/a.png", "width": 100,
-                         "height": 100, "sha256": "a" * 64, "group": "a", "split": "train",
-                         "boxes": [[0, 0, 100, 100]], "labels": [1]}]}
+    return {
+        "schema_version": "1",
+        "classes": [{"id": 1, "name": "defect"}],
+        "records": [
+            {
+                "id": "a",
+                "image": "images/train/a.png",
+                "width": 100,
+                "height": 100,
+                "sha256": "a" * 64,
+                "group": "a",
+                "split": "train",
+                "boxes": [[0, 0, 100, 100]],
+                "labels": [1],
+            }
+        ],
+    }
 
 
-@pytest.mark.parametrize("field,value", [
-    ("image", "../outside.png"), ("image", "C:\\outside.png"), ("image", "/absolute.png"),
-    ("boxes", [[0, 0, 101, 100]]), ("boxes", [[30, 0, 20, 100]]),
-    ("boxes", [[0, 0, float("nan"), 100]]), ("labels", [2]), ("split", "unassigned"),
-])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("image", "../outside.png"),
+        ("image", "C:\\outside.png"),
+        ("image", "/absolute.png"),
+        ("boxes", [[0, 0, 101, 100]]),
+        ("boxes", [[30, 0, 20, 100]]),
+        ("boxes", [[0, 0, float("nan"), 100]]),
+        ("labels", [2]),
+        ("split", "unassigned"),
+    ],
+)
 def test_manifest_validation_rejects_corrupt_records(field, value):
     manifest = manifest_fixture()
     manifest["records"][0][field] = value
@@ -89,9 +125,11 @@ def test_manifest_digest_detects_modified_annotations():
 
 
 def test_filename_prefix_proxy_connects_source_patches():
-    records = [{"id": "a", "source_group": "prefix-1"},
-               {"id": "b", "source_group": "prefix-1"},
-               {"id": "c", "source_group": "prefix-2"}]
+    records = [
+        {"id": "a", "source_group": "prefix-1"},
+        {"id": "b", "source_group": "prefix-1"},
+        {"id": "c", "source_group": "prefix-2"},
+    ]
     images = [Image.new("RGB", (32, 32), color) for color in ("red", "green", "blue")]
     groups, audit = duplicate_groups(records, [_fingerprint(image) for image in images])
     assert groups[0] == groups[1]
@@ -101,10 +139,15 @@ def test_filename_prefix_proxy_connects_source_patches():
 
 def test_duplicate_groups_use_decoded_pixels_and_near_brightness():
     pattern = np.tile(np.arange(64, dtype=np.uint8), (64, 1))
-    images = [Image.fromarray(pattern), Image.fromarray(pattern.copy()),
-              Image.fromarray(pattern + 3), Image.fromarray(255 - pattern)]
-    groups, audit = duplicate_groups([{"id": str(i)} for i in range(4)],
-                                     [_fingerprint(image) for image in images])
+    images = [
+        Image.fromarray(pattern),
+        Image.fromarray(pattern.copy()),
+        Image.fromarray(pattern + 3),
+        Image.fromarray(255 - pattern),
+    ]
+    groups, audit = duplicate_groups(
+        [{"id": str(i)} for i in range(4)], [_fingerprint(image) for image in images]
+    )
     assert groups[0] == groups[1] == groups[2]
     assert groups[0] != groups[3]
     assert len(audit["exact_duplicate_pairs"]) == 1
@@ -116,11 +159,17 @@ def test_group_splits_are_deterministic_and_stratified():
     split = split_groups(records, 42)
     assert split == split_groups(records, 42)
     assert split != split_groups(records, 43)
-    counts = {name: sum(split[row["group"]] == name for row in records)
-              for name in ("train", "val", "test")}
+    counts = {
+        name: sum(split[row["group"]] == name for row in records)
+        for name in ("train", "val", "test")
+    }
     assert counts == {"train": 140, "val": 30, "test": 30}
     for label in (1, 2):
-        assert {split[row["group"]] for row in records if label in row["labels"]} == {"train", "val", "test"}
+        assert {split[row["group"]] for row in records if label in row["labels"]} == {
+            "train",
+            "val",
+            "test",
+        }
 
 
 def test_preparation_reports_exclusions_and_freezes_outputs(tmp_path):

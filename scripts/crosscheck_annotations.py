@@ -28,9 +28,11 @@ def match_boxes(left: list[tuple], right: list[tuple]) -> float:
     remaining = right.copy()
     maximum = 0.0
     for label, box in sorted(left):
-        options = [(box_error(box, other_box), index)
-                   for index, (other_label, other_box) in enumerate(remaining)
-                   if label == other_label]
+        options = [
+            (box_error(box, other_box), index)
+            for index, (other_label, other_box) in enumerate(remaining)
+            if label == other_label
+        ]
         if not options:
             raise ValueError(f"no matching category for class {label}")
         distance, index = min(options)
@@ -83,8 +85,11 @@ def crosscheck(archive: Path, manifest_path: Path, output: Path) -> dict:
                 raw_items = annotations[image["id"]]
                 if row is None:
                     label_path = path.replace("/images/", "/labels/").rsplit(".", 1)[0] + ".txt"
-                    excluded_lines = [line for line in source.read(label_path).decode("utf-8-sig").splitlines()
-                                      if line.strip()]
+                    excluded_lines = [
+                        line
+                        for line in source.read(label_path).decode("utf-8-sig").splitlines()
+                        if line.strip()
+                    ]
                     invalid_rows = []
                     for index, line in enumerate(excluded_lines, 1):
                         fields = line.split()
@@ -95,18 +100,28 @@ def crosscheck(archive: Path, manifest_path: Path, output: Path) -> dict:
                         if not all(math.isfinite(value) for value in values):
                             invalid_rows.append({"line": index, "reason": "non-finite value"})
                         elif values[3] <= 0 or values[4] <= 0:
-                            invalid_rows.append({"line": index, "reason": "non-positive box extent"})
-                    excluded.append({"source_path": path, "source_annotation_count": len(raw_items),
-                                     "original_yolo_annotation_count": len(excluded_lines),
-                                     "invalid_yolo_rows": invalid_rows,
-                                     "nonpositive_coco_boxes": sum(item["bbox"][2] <= 0 or item["bbox"][3] <= 0
-                                                                   for item in raw_items)})
+                            invalid_rows.append(
+                                {"line": index, "reason": "non-positive box extent"}
+                            )
+                    excluded.append(
+                        {
+                            "source_path": path,
+                            "source_annotation_count": len(raw_items),
+                            "original_yolo_annotation_count": len(excluded_lines),
+                            "invalid_yolo_rows": invalid_rows,
+                            "nonpositive_coco_boxes": sum(
+                                item["bbox"][2] <= 0 or item["bbox"][3] <= 0 for item in raw_items
+                            ),
+                        }
+                    )
                     continue
                 try:
                     width, height = image["width"], image["height"]
                     if (width, height) != (row["width"], row["height"]):
                         raise ValueError("COCO and manifest image dimensions differ")
-                    annotation_path = path.replace("/images/", "/labels/").rsplit(".", 1)[0] + ".txt"
+                    annotation_path = (
+                        path.replace("/images/", "/labels/").rsplit(".", 1)[0] + ".txt"
+                    )
                     raw_yolo = source.read(annotation_path)
                     if hashlib.sha256(raw_yolo).hexdigest() != row["annotation_sha256"]:
                         raise ValueError("Source annotation bytes differ from manifest hash")
@@ -121,21 +136,40 @@ def crosscheck(archive: Path, manifest_path: Path, output: Path) -> dict:
                             raise ValueError("Malformed original YOLO annotation")
                         category = int(fields[0]) + 1
                         cx, cy, bw, bh = map(float, fields[1:])
-                        center_x, center_y, extent_x, extent_y = cx * width, cy * height, bw * width, bh * height
-                        box = [center_x - extent_x / 2, center_y - extent_y / 2,
-                               center_x + extent_x / 2, center_y + extent_y / 2]
-                        if not all(math.isfinite(value) for value in box) or extent_x <= 0 or extent_y <= 0:
+                        center_x, center_y, extent_x, extent_y = (
+                            cx * width,
+                            cy * height,
+                            bw * width,
+                            bh * height,
+                        )
+                        box = [
+                            center_x - extent_x / 2,
+                            center_y - extent_y / 2,
+                            center_x + extent_x / 2,
+                            center_y + extent_y / 2,
+                        ]
+                        if (
+                            not all(math.isfinite(value) for value in box)
+                            or extent_x <= 0
+                            or extent_y <= 0
+                        ):
                             raise ValueError("Invalid original YOLO box")
                         yolo_boxes.append((category, box))
                     coco_boxes = []
                     for item in raw_items:
                         x, y, bw, bh = item["bbox"]
                         if item.get("iscrowd", 0):
-                            raise ValueError("Crowd annotations require separate matching semantics")
+                            raise ValueError(
+                                "Crowd annotations require separate matching semantics"
+                            )
                         coco_boxes.append((item["category_id"] + 1, [x, y, x + bw, y + bh]))
                     manifest_boxes = list(zip(row["labels"], row["boxes"]))
-                    max_yolo_coco_error = max(max_yolo_coco_error, match_boxes(yolo_boxes, coco_boxes))
-                    max_yolo_manifest_error = max(max_yolo_manifest_error, match_boxes(yolo_boxes, manifest_boxes))
+                    max_yolo_coco_error = max(
+                        max_yolo_coco_error, match_boxes(yolo_boxes, coco_boxes)
+                    )
+                    max_yolo_manifest_error = max(
+                        max_yolo_manifest_error, match_boxes(yolo_boxes, manifest_boxes)
+                    )
                     raw_image = source.read(path)
                     if hashlib.sha256(raw_image).hexdigest() != row["sha256"]:
                         raise ValueError("Source image bytes differ from manifest hash")
@@ -143,14 +177,24 @@ def crosscheck(archive: Path, manifest_path: Path, output: Path) -> dict:
                     with Image.open(BytesIO(raw_image)) as decoded:
                         decoded.load()
                         if decoded.size != (width, height) or decoded.getexif().get(274, 1) != 1:
-                            raise ValueError("Decoded image dimensions or EXIF orientation disagree")
+                            raise ValueError(
+                                "Decoded image dimensions or EXIF orientation disagree"
+                            )
                     dimension_checks += 1
                     manifest_class_counts.update(row["labels"])
                     negatives += not row["labels"]
-                    margins = [min(box[0], box[1], width - box[2], height - box[3]) for _, box in manifest_boxes]
-                    summary = {"source_path": path, "model_labels": row["labels"], "boxes": row["boxes"],
-                               "new_split": row["split"], "original_split": split,
-                               "minimum_boundary_margin_pixels": min(margins) if margins else None}
+                    margins = [
+                        min(box[0], box[1], width - box[2], height - box[3])
+                        for _, box in manifest_boxes
+                    ]
+                    summary = {
+                        "source_path": path,
+                        "model_labels": row["labels"],
+                        "boxes": row["boxes"],
+                        "new_split": row["split"],
+                        "original_split": split,
+                        "minimum_boundary_margin_pixels": min(margins) if margins else None,
+                    }
                     checked.append(summary)
                     if any(margin <= TOLERANCE_PIXELS for margin in margins):
                         boundary_records.append(summary)
@@ -189,13 +233,18 @@ def crosscheck(archive: Path, manifest_path: Path, output: Path) -> dict:
         "accepted_class_instance_counts": dict(manifest_class_counts),
         "excluded_source_images": excluded,
         "deterministic_samples_per_class": sample_by_class,
-        "deterministic_negative_samples": sorted([row for row in checked if not row["model_labels"]],
-                                                  key=lambda row: row["source_path"])[:5],
-        "deterministic_boundary_samples": sorted(boundary_records, key=lambda row: row["source_path"])[:10],
+        "deterministic_negative_samples": sorted(
+            [row for row in checked if not row["model_labels"]], key=lambda row: row["source_path"]
+        )[:5],
+        "deterministic_boundary_samples": sorted(
+            boundary_records, key=lambda row: row["source_path"]
+        )[:10],
         "errors": errors,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8"
+    )
     return report
 
 
@@ -203,10 +252,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=Path("data/raw/PCB-IND_v4.zip"))
     parser.add_argument("--manifest", type=Path, default=Path("data/manifests/pcb-ind-v4.json"))
-    parser.add_argument("--output", type=Path, default=Path("reports/validation/annotation-crosscheck.json"))
+    parser.add_argument(
+        "--output", type=Path, default=Path("reports/validation/annotation-crosscheck.json")
+    )
     args = parser.parse_args()
     report = crosscheck(args.archive, args.manifest, args.output)
-    print(json.dumps({key: report[key] for key in ("status", "successfully_compared_images", "negative_images_compared",
-                                                  "boundary_images_compared", "maximum_yolo_coco_coordinate_difference_pixels",
-                                                  "maximum_yolo_manifest_coordinate_difference_pixels", "errors")}, indent=2))
+    print(
+        json.dumps(
+            {
+                key: report[key]
+                for key in (
+                    "status",
+                    "successfully_compared_images",
+                    "negative_images_compared",
+                    "boundary_images_compared",
+                    "maximum_yolo_coco_coordinate_difference_pixels",
+                    "maximum_yolo_manifest_coordinate_difference_pixels",
+                    "errors",
+                )
+            },
+            indent=2,
+        )
+    )
     raise SystemExit(0 if report["status"] == "pass" else 1)

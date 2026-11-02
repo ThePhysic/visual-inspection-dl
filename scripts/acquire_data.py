@@ -24,8 +24,13 @@ def acquire(dest: Path, archive: Path | None = None) -> dict:
         temporary = archive.with_suffix(".zip.part")
         total = 0
         try:
-            request = urllib.request.Request(URL, headers={"User-Agent": "visual-inspection-dl/0.1"})
-            with urllib.request.urlopen(request, timeout=120) as response, temporary.open("wb") as out:
+            request = urllib.request.Request(
+                URL, headers={"User-Agent": "visual-inspection-dl/0.1"}
+            )
+            with (
+                urllib.request.urlopen(request, timeout=120) as response,
+                temporary.open("wb") as out,
+            ):
                 while chunk := response.read(1 << 20):
                     total += len(chunk)
                     if total > EXPECTED_BYTES:
@@ -35,8 +40,11 @@ def acquire(dest: Path, archive: Path | None = None) -> dict:
         finally:
             temporary.unlink(missing_ok=True)
     payload = archive.read_bytes()
-    if (len(payload) != EXPECTED_BYTES or hashlib.md5(payload).hexdigest() != EXPECTED_MD5
-            or hashlib.sha256(payload).hexdigest() != EXPECTED_SHA256):
+    if (
+        len(payload) != EXPECTED_BYTES
+        or hashlib.md5(payload).hexdigest() != EXPECTED_MD5
+        or hashlib.sha256(payload).hexdigest() != EXPECTED_SHA256
+    ):
         raise ValueError("Dataset archive size/checksum mismatch; remove it and retry acquisition")
     with zipfile.ZipFile(archive) as source:
         members = source.infolist()
@@ -54,9 +62,11 @@ def acquire(dest: Path, archive: Path | None = None) -> dict:
             if not target.is_relative_to(dest):
                 raise ValueError("Archive path escapes extraction root")
         dest.mkdir(parents=True, exist_ok=True)
-        selected = [item for item in members
-                    if item.filename.startswith("YOLO/")
-                    or item.filename in {"classes.json", "README.md"}]
+        selected = [
+            item
+            for item in members
+            if item.filename.startswith("YOLO/") or item.filename in {"classes.json", "README.md"}
+        ]
         source.extractall(dest, members=selected)
     result = {
         "source": URL,

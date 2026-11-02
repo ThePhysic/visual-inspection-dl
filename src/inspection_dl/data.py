@@ -15,8 +15,14 @@ import numpy as np
 from PIL import Image
 
 CLASS_NAMES = (
-    "mouse_bite", "missing_copper", "scratch", "spurious_copper",
-    "copper_burr", "stain", "short", "open",
+    "mouse_bite",
+    "missing_copper",
+    "scratch",
+    "spurious_copper",
+    "copper_burr",
+    "stain",
+    "short",
+    "open",
 )
 DATASET_ID = "pcb-ind-zenodo-19723114-v4"
 
@@ -46,8 +52,14 @@ def parse_yolo(text: str, width: int, height: int, num_classes: int = 8) -> tupl
         # Decimal YOLO serialization can put an intended boundary ~1e-6 outside the image.
         if x1 < -1e-6 or y1 < -1e-6 or x2 > 1 + 1e-6 or y2 > 1 + 1e-6:
             raise ValueError(f"line {line_number}: out-of-bounds box")
-        boxes.append([round(max(0.0, x1) * width, 6), round(max(0.0, y1) * height, 6),
-                      round(min(1.0, x2) * width, 6), round(min(1.0, y2) * height, 6)])
+        boxes.append(
+            [
+                round(max(0.0, x1) * width, 6),
+                round(max(0.0, y1) * height, 6),
+                round(min(1.0, x2) * width, 6),
+                round(min(1.0, y2) * height, 6),
+            ]
+        )
         labels.append(int(category_float) + 1)
     if len(set(zip(labels, map(tuple, boxes)))) != len(boxes):
         raise ValueError("Duplicate label rows")
@@ -103,19 +115,27 @@ def duplicate_groups(records: list[dict], fingerprints: list[tuple]) -> tuple[li
                 difference = float(np.abs(gray - other_gray).mean())
                 if difference <= 6.0:
                     union(index, previous)
-                    near.append({"left": records[previous]["id"], "right": records[index]["id"],
-                                 "dhash_distance": (dhash ^ other_hash).bit_count(),
-                                 "thumbnail_gray_mae": round(difference, 6)})
+                    near.append(
+                        {
+                            "left": records[previous]["id"],
+                            "right": records[index]["id"],
+                            "dhash_distance": (dhash ^ other_hash).bit_count(),
+                            "thumbnail_gray_mae": round(difference, 6),
+                        }
+                    )
     members = defaultdict(list)
     for index, record in enumerate(records):
         members[find(index)].append(record["id"])
     names = {key: min(values) for key, values in members.items()}
     groups = ["visual-" + names[find(index)] for index in range(len(records))]
-    return groups, {"exact_duplicate_pairs": exact, "near_duplicate_pairs": near,
-                    "group_count": len(members),
-                    "largest_group": max(map(len, members.values()), default=0),
-                    "source_prefix_group_count": len(source_groups),
-                    "algorithm": "shared numeric filename prefix OR decoded-RGB SHA256 OR (64-bit dHash Hamming<=4 AND 32x32 grayscale MAE<=6), connected components"}
+    return groups, {
+        "exact_duplicate_pairs": exact,
+        "near_duplicate_pairs": near,
+        "group_count": len(members),
+        "largest_group": max(map(len, members.values()), default=0),
+        "source_prefix_group_count": len(source_groups),
+        "algorithm": "shared numeric filename prefix OR decoded-RGB SHA256 OR (64-bit dHash Hamming<=4 AND 32x32 grayscale MAE<=6), connected components",
+    }
 
 
 def split_groups(records: list[dict], seed: int = 42) -> dict[str, str]:
@@ -124,8 +144,10 @@ def split_groups(records: list[dict], seed: int = 42) -> dict[str, str]:
     for record in records:
         grouped[record["group"]].append(record)
     classes = sorted({label for record in records for label in record["labels"]})
-    totals = np.array([len(records)] + [sum(label in row["labels"] for row in records)
-                                     for label in classes], dtype=float)
+    totals = np.array(
+        [len(records)] + [sum(label in row["labels"] for row in records) for label in classes],
+        dtype=float,
+    )
     fractions = np.array([0.70, 0.15, 0.15])
     targets = fractions[:, None] * totals[None, :]
     current = np.zeros_like(targets)
@@ -136,11 +158,15 @@ def split_groups(records: list[dict], seed: int = 42) -> dict[str, str]:
     result = {}
     for key in groups:
         rows = grouped[key]
-        addition = np.array([len(rows)] + [sum(label in row["labels"] for row in rows)
-                                          for label in classes], dtype=float)
+        addition = np.array(
+            [len(rows)] + [sum(label in row["labels"] for row in rows) for label in classes],
+            dtype=float,
+        )
         # Normalized incremental squared target error gives rare classes equal influence.
         scale = np.maximum(targets, 1)
-        costs = (((current + addition - targets) ** 2 - (current - targets) ** 2) / scale).sum(axis=1)
+        costs = (((current + addition - targets) ** 2 - (current - targets) ** 2) / scale).sum(
+            axis=1
+        )
         chosen = int(np.argmin(costs))
         current[chosen] += addition
         result[key] = names[chosen]
@@ -153,12 +179,17 @@ def validate_manifest(manifest: dict) -> None:
         raise ValueError("Unsupported manifest schema")
     classes = manifest.get("classes", [])
     class_ids = [entry["id"] for entry in classes]
-    if (not classes or class_ids != list(range(1, len(classes) + 1))
-            or len({c["name"] for c in classes}) != len(classes)):
+    if (
+        not classes
+        or class_ids != list(range(1, len(classes) + 1))
+        or len({c["name"] for c in classes}) != len(classes)
+    ):
         raise ValueError("Taxonomy must have unique names and contiguous 1-based IDs")
     if "manifest_digest" in manifest:
         content = {key: value for key, value in manifest.items() if key != "manifest_digest"}
-        digest = hashlib.sha256(json.dumps(content, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        digest = hashlib.sha256(
+            json.dumps(content, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
         if digest != manifest["manifest_digest"]:
             raise ValueError("Manifest content digest mismatch")
     seen, group_splits, digest_splits = set(), {}, {}
@@ -167,8 +198,14 @@ def validate_manifest(manifest: dict) -> None:
             raise ValueError("Duplicate record ID")
         seen.add(row["id"])
         path = Path(row["image"])
-        if (path.is_absolute() or row["image"].startswith("/") or ".." in path.parts
-                or "\\" in row["image"] or ":" in row["image"] or not path.name):
+        if (
+            path.is_absolute()
+            or row["image"].startswith("/")
+            or ".." in path.parts
+            or "\\" in row["image"]
+            or ":" in row["image"]
+            or not path.name
+        ):
             raise ValueError("Unsafe image path")
         width, height = row["width"], row["height"]
         if type(width) is not int or type(height) is not int or width <= 0 or height <= 0:
@@ -207,9 +244,12 @@ def prepare_dataset(root: Path, output: Path, seed: int = 42) -> dict:
         if taxonomy.get("version") != "v4" or taxonomy.get("classes") != expected:
             raise ValueError("Source taxonomy differs from the pinned PCB-IND v4 release")
     image_root = root / "YOLO" if (root / "YOLO").is_dir() else root
-    image_paths = sorted(path for path in image_root.rglob("*")
-                         if path.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"}
-                         and "images" in path.relative_to(root).parts)
+    image_paths = sorted(
+        path
+        for path in image_root.rglob("*")
+        if path.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"}
+        and "images" in path.relative_to(root).parts
+    )
     if not image_paths:
         raise ValueError("No images found under an images directory; acquire PCB-IND_v4 first")
     records, fingerprints, exclusions = [], [], []
@@ -227,20 +267,29 @@ def prepare_dataset(root: Path, output: Path, seed: int = 42) -> dict:
             with Image.open(path) as image:
                 image.load()
                 if image.getexif().get(274, 1) != 1:
-                    raise ValueError("Non-identity EXIF orientation requires annotation reconciliation")
+                    raise ValueError(
+                        "Non-identity EXIF orientation requires annotation reconciliation"
+                    )
                 width, height = image.size
                 fingerprint = _fingerprint(image)
             boxes, labels = parse_yolo(label_path.read_text(encoding="utf-8-sig"), width, height)
             relative_str = relative.as_posix()
             prefix_match = re.fullmatch(r"([0-9]+)_[tb]_[0-9]+", path.stem)
-            records.append({"id": hashlib.sha256(relative_str.encode()).hexdigest()[:20],
-                            "source_id": relative_str, "image": relative_str,
-                            "width": width, "height": height,
-                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                            "annotation_sha256": hashlib.sha256(label_path.read_bytes()).hexdigest(),
-                            "source_split": relative.parts[relative.parts.index("images") + 1],
-                            "source_group": "filename-prefix-" + prefix_match[1] if prefix_match else None,
-                            "boxes": boxes, "labels": labels})
+            records.append(
+                {
+                    "id": hashlib.sha256(relative_str.encode()).hexdigest()[:20],
+                    "source_id": relative_str,
+                    "image": relative_str,
+                    "width": width,
+                    "height": height,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "annotation_sha256": hashlib.sha256(label_path.read_bytes()).hexdigest(),
+                    "source_split": relative.parts[relative.parts.index("images") + 1],
+                    "source_group": "filename-prefix-" + prefix_match[1] if prefix_match else None,
+                    "boxes": boxes,
+                    "labels": labels,
+                }
+            )
             fingerprints.append(fingerprint)
         except (ValueError, OSError) as error:
             exclusions.append({"image": relative.as_posix(), "reason": str(error)})
@@ -252,30 +301,55 @@ def prepare_dataset(root: Path, output: Path, seed: int = 42) -> dict:
     assignments = split_groups(records, seed)
     for row in records:
         row["split"] = assignments[row["group"]]
-    manifest = {"schema_version": "1", "dataset_id": DATASET_ID, "taxonomy_version": "pcb-ind-v4-1",
-                "classes": [{"id": index + 1, "name": name} for index, name in enumerate(CLASS_NAMES)],
-                "coordinate_system": "xyxy_pixels_original_image", "seed": seed,
-                "source": "https://zenodo.org/records/19723114", "license": "CC-BY-4.0",
-                "split_policy": "70/15/15 greedy multilabel whole filename-prefix/visual-duplicate components; author splits recombined",
-                "records": records}
+    manifest = {
+        "schema_version": "1",
+        "dataset_id": DATASET_ID,
+        "taxonomy_version": "pcb-ind-v4-1",
+        "classes": [{"id": index + 1, "name": name} for index, name in enumerate(CLASS_NAMES)],
+        "coordinate_system": "xyxy_pixels_original_image",
+        "seed": seed,
+        "source": "https://zenodo.org/records/19723114",
+        "license": "CC-BY-4.0",
+        "split_policy": "70/15/15 greedy multilabel whole filename-prefix/visual-duplicate components; author splits recombined",
+        "records": records,
+    }
     validate_manifest(manifest)
-    manifest_digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    manifest_digest = hashlib.sha256(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     manifest["manifest_digest"] = manifest_digest
-    audit = {"dataset_id": DATASET_ID, "manifest_digest": manifest_digest,
-             "input_images": len(image_paths), "accepted_images": len(records),
-             "exclusions": exclusions, "orphan_labels": sorted(path.relative_to(root).as_posix() for path in all_labels - used_labels),
-             "duplicate_audit": duplicate_audit,
-             "acquisition_group_metadata": "All matching <numeric>_[tb]_<index> filenames sharing numeric prefix are conservatively grouped; prefix semantics unconfirmed. No explicit board/camera/session metadata, so these proxies cannot certify unseen-board generalization",
-             "split_counts": dict(Counter(row["split"] for row in records)),
-             "class_instance_counts": {name: {split: sum(row["labels"].count(index + 1) for row in records if row["split"] == split)
-                                                  for split in ("train", "val", "test")}
-                                       for index, name in enumerate(CLASS_NAMES)},
-             "class_image_counts": {name: {split: sum(index + 1 in row["labels"] for row in records if row["split"] == split)
-                                               for split in ("train", "val", "test")}
-                                    for index, name in enumerate(CLASS_NAMES)},
-             "empty_images": sum(not row["labels"] for row in records),
-             "dimension_counts": dict(Counter(f'{row["width"]}x{row["height"]}' for row in records)),
-             "near_duplicate_detection_limits": "dHash plus thumbnail MAE is conservative and may miss crops, rotations, severe illumination changes and different views of the same board"}
+    audit = {
+        "dataset_id": DATASET_ID,
+        "manifest_digest": manifest_digest,
+        "input_images": len(image_paths),
+        "accepted_images": len(records),
+        "exclusions": exclusions,
+        "orphan_labels": sorted(
+            path.relative_to(root).as_posix() for path in all_labels - used_labels
+        ),
+        "duplicate_audit": duplicate_audit,
+        "acquisition_group_metadata": "All matching <numeric>_[tb]_<index> filenames sharing numeric prefix are conservatively grouped; prefix semantics unconfirmed. No explicit board/camera/session metadata, so these proxies cannot certify unseen-board generalization",
+        "split_counts": dict(Counter(row["split"] for row in records)),
+        "class_instance_counts": {
+            name: {
+                split: sum(
+                    row["labels"].count(index + 1) for row in records if row["split"] == split
+                )
+                for split in ("train", "val", "test")
+            }
+            for index, name in enumerate(CLASS_NAMES)
+        },
+        "class_image_counts": {
+            name: {
+                split: sum(index + 1 in row["labels"] for row in records if row["split"] == split)
+                for split in ("train", "val", "test")
+            }
+            for index, name in enumerate(CLASS_NAMES)
+        },
+        "empty_images": sum(not row["labels"] for row in records),
+        "dimension_counts": dict(Counter(f"{row['width']}x{row['height']}" for row in records)),
+        "near_duplicate_detection_limits": "dHash plus thumbnail MAE is conservative and may miss crops, rotations, severe illumination changes and different views of the same board",
+    }
     _write_immutable(output, manifest)
     _write_immutable(output.with_name(output.stem + ".audit.json"), audit)
     return manifest
@@ -288,4 +362,9 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     result = prepare_dataset(args.root, args.output, args.seed)
-    print(json.dumps({"manifest_digest": result["manifest_digest"], "images": len(result["records"])}, indent=2))
+    print(
+        json.dumps(
+            {"manifest_digest": result["manifest_digest"], "images": len(result["records"])},
+            indent=2,
+        )
+    )
