@@ -195,6 +195,12 @@ predictions right. `per_image_errors.json` covers the entire split. Synthetic
 robustness checks use the first 100 sorted split images (configurable), compare
 the identical clean subset, and apply brightness 0.7, Gaussian blur radius 1,
 and JPEG quality 50. They do not establish naturally occurring robustness.
+Every condition, including its clean control, uses the same single-image
+inference call and preprocessing path. The retained study's original clean
+control used batch eight while its perturbations used batch one; the companion
+`reports/rtx4060-study-v2/validation/robustness-control.json` supplies the matched
+batch-one clean result for interpreting those original perturbation metrics.
+The original report remains available as recorded evidence.
 Unavailable acquisition/lighting metadata is disclosed, never fabricated.
 
 ## CI scope

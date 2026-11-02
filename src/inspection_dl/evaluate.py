@@ -204,9 +204,11 @@ def plot_report(report: dict, history_path: Path | None, output: Path):
 
 @torch.inference_mode()
 def robustness_report(model, records, root, classes, device, threshold, limit=100):
+    model.eval()
     chosen = records[: min(limit, len(records))]
     reports = {}
     variants = {
+        "unperturbed": lambda image: image,
         "brightness_0.7": lambda image: ImageEnhance.Brightness(image).enhance(0.7),
         "gaussian_blur_radius_1": lambda image: image.filter(ImageFilter.GaussianBlur(1.0)),
         "jpeg_quality_50": None,
@@ -243,7 +245,11 @@ def robustness_report(model, records, root, classes, device, threshold, limit=10
         reports[name] = evaluate_detections(chosen, predictions, classes, threshold)
     return {
         "definition": "synthetic perturbations, not naturally observed acquisition metadata; first N sorted image IDs, same labels/geometry",
+        "batch_size": 1,
+        "device": device,
+        "threshold": threshold,
         "images": [record["id"] for record in chosen],
+        "unperturbed_same_subset": reports.pop("unperturbed"),
         "variants": reports,
     }
 
@@ -414,10 +420,6 @@ def evaluate(args) -> dict:
             args.device,
             args.threshold,
             args.robustness_limit,
-        )
-        clean_subset = records[: min(args.robustness_limit, len(records))]
-        robustness["unperturbed_same_subset"] = evaluate_detections(
-            clean_subset, predictions, manifest["classes"], args.threshold
         )
         atomic_json(output / "robustness.json", robustness)
     atomic_json(output / "report.json", report)

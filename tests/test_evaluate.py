@@ -9,7 +9,7 @@ import torch
 from PIL import Image
 
 from inspection_dl.bundle import canonical_json, export_bundle
-from inspection_dl.evaluate import evaluate
+from inspection_dl.evaluate import evaluate, robustness_report
 from inspection_dl.model import ARCHITECTURE, build_detector
 from inspection_dl.train import file_digest
 
@@ -185,3 +185,50 @@ def test_bundle_evaluation_rejects_ambiguous_source(released_fixture):
                 }
             )
         )
+
+
+def test_robustness_clean_control_uses_identical_single_image_policy(tmp_path):
+    class RecordingDetector(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.calls = []
+
+        def forward(self, images):
+            assert not self.training
+            self.calls.append([image.detach().clone() for image in images])
+            return [
+                {
+                    "boxes": torch.tensor([[0.0, 0.0, 10.0, 10.0]]),
+                    "labels": torch.tensor([1]),
+                    "scores": image.mean().reshape(1),
+                }
+                for image in images
+            ]
+
+    image = tmp_path / "white.png"
+    Image.new("RGB", (10, 10), color="white").save(image)
+    records = [
+        {
+            "id": "one",
+            "image": image.name,
+            "width": 10,
+            "height": 10,
+            "boxes": [[0, 0, 10, 10]],
+            "labels": [1],
+        }
+    ]
+    model = RecordingDetector()
+    result = robustness_report(model, records, tmp_path, [{"id": 1, "name": "fixture"}], "cpu", 0.2)
+    assert len(model.calls) == 4
+    assert all(len(batch) == 1 for batch in model.calls)
+    assert result["batch_size"] == 1 and result["device"] == "cpu"
+    assert result["threshold"] == 0.2 and result["images"] == ["one"]
+    assert result["unperturbed_same_subset"]["operating"]["tp"] == 1
+    assert result["unperturbed_same_subset"]["per_class"][0]["pr_curve_iou50"]["scores"] == [1.0]
+    assert set(result["variants"]) == {
+        "brightness_0.7",
+        "gaussian_blur_radius_1",
+        "jpeg_quality_50",
+    }
+    assert torch.equal(model.calls[0][0], torch.ones(3, 10, 10))
+    assert model.calls[1][0].mean() < model.calls[0][0].mean()

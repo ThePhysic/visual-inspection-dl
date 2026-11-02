@@ -1,0 +1,259 @@
+{
+  "kind": "actual released model evaluation in a CPU-only environment on the frozen validation split; no holdout or model/threshold reselection",
+  "recorded_at_utc": "2026-11-02T23:25:44.023396+00:00",
+  "command": ".venv-cpu/Scripts/python -m inspection_dl.evaluate --manifest data/manifests/pcb-ind-v4.json --data-root data/raw/pcb-ind --bundle releases/pcb-ind-ssdlite-v1 --output tmp/released-bundle-validation --split val --device cpu",
+  "environment": {
+    "python": "3.12.15",
+    "torch": "2.7.1+cpu",
+    "torchvision": "0.22.1+cpu",
+    "cuda_available": false,
+    "torch_cuda_runtime": null
+  },
+  "source_type": "bundle",
+  "model_version": "pcb-ind-ssdlite-v1",
+  "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+  "weights_sha256": "28271a688aa7335521bb7725423fd6ea6622f3d1964bfaed83dd97b4f0ff34d9",
+  "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "threshold": 0.2,
+  "images": 714,
+  "evaluation_source": {
+    "package_source_sha256": "47a4015d78006ade95807926868829d662b7322f2210c91fff576e1ad82a045c",
+    "revision": "2fef9e671f2dd1f1bed539f07e94564690ad5a0d",
+    "dirty": true,
+    "status": [
+      "?? docs/ERROR_ANALYSIS.md",
+      "?? docs/MODEL_CARD.md",
+      "?? docs/REPRODUCIBILITY.md",
+      "?? releases/",
+      "?? reports/rtx4060-study-v2/benchmark.json",
+      "?? reports/rtx4060-study-v2/documentation-inputs.json",
+      "?? reports/rtx4060-study-v2/experiments/",
+      "?? reports/rtx4060-study-v2/holdout/",
+      "?? reports/rtx4060-study-v2/initialization-parity.json",
+      "?? reports/rtx4060-study-v2/licensing.json",
+      "?? reports/rtx4060-study-v2/selection.json",
+      "?? reports/rtx4060-study-v2/validation/",
+      "?? reports/validation/final-tests.json"
+    ],
+    "git_available": true
+  },
+  "full_output_directory": "tmp/released-bundle-validation (ignored local output)",
+  "original_report": "reports/rtx4060-study-v2/validation/report.json",
+  "original_report_sha256": "b9dbab5c5789510ac9d1484e0e164c09f4d362967cfb4c456d5a39748072a95a",
+  "released_report_sha256": "47c937228fde611da1f74d551262f4fb145a93d2caad4118cc9c5010c1b4ba5f",
+  "identity_checks": {
+    "source_is_bundle": true,
+    "no_training_checkpoint_input": true,
+    "artifact_matches_release": true,
+    "weights_match_release": true,
+    "manifest_matches_both_sources": true,
+    "all_validation_images": true,
+    "saved_threshold_preserved": true,
+    "no_threshold_reselection": true,
+    "validation_only": true,
+    "original_checkpoint_provenance_matches": true
+  },
+  "all_identity_checks_passed": true,
+  "core_evaluation_elapsed_seconds": 64.86666520001017,
+  "timing_definition": "as emitted by evaluate: image inference and metric/uncertainty computation; excludes model loading and later plot/output writing",
+  "aggregate_ap_comparison": {
+    "map50": {
+      "original_gpu_checkpoint": 0.43857278874093714,
+      "released_cpu_bundle": 0.4385518541792035,
+      "absolute_difference": 2.0934561733632062e-05
+    },
+    "map50_95": {
+      "original_gpu_checkpoint": 0.2513159395068133,
+      "released_cpu_bundle": 0.251245666005076,
+      "absolute_difference": 7.027350173732794e-05
+    }
+  },
+  "operating_comparison": {
+    "tp": {
+      "original_gpu_checkpoint": 454,
+      "released_cpu_bundle": 454,
+      "difference_cpu_minus_gpu": 0
+    },
+    "fp": {
+      "original_gpu_checkpoint": 501,
+      "released_cpu_bundle": 500,
+      "difference_cpu_minus_gpu": -1
+    },
+    "fn": {
+      "original_gpu_checkpoint": 367,
+      "released_cpu_bundle": 367,
+      "difference_cpu_minus_gpu": 0
+    },
+    "precision": {
+      "original_gpu_checkpoint": 0.47539267015706804,
+      "released_cpu_bundle": 0.4758909853249476,
+      "difference_cpu_minus_gpu": 0.0004983151678795705
+    },
+    "recall": {
+      "original_gpu_checkpoint": 0.5529841656516443,
+      "released_cpu_bundle": 0.5529841656516443,
+      "difference_cpu_minus_gpu": 0.0
+    },
+    "f1": {
+      "original_gpu_checkpoint": 0.5112612612612613,
+      "released_cpu_bundle": 0.5115492957746479,
+      "difference_cpu_minus_gpu": 0.0002880345133866591
+    }
+  },
+  "per_class_comparison": [
+    {
+      "id": 1,
+      "name": "mouse_bite",
+      "ap50": {
+        "original_gpu_checkpoint": 0.23262293981867882,
+        "released_cpu_bundle": 0.23220824255292938,
+        "absolute_difference": 0.0004146972657494419
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.08706801875610112,
+        "released_cpu_bundle": 0.08677472891057011,
+        "absolute_difference": 0.00029328984553100845
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": -1,
+        "fn": 0
+      }
+    },
+    {
+      "id": 2,
+      "name": "missing_copper",
+      "ap50": {
+        "original_gpu_checkpoint": 0.6372238534766822,
+        "released_cpu_bundle": 0.6375177028566192,
+        "absolute_difference": 0.00029384937993703897
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.35739117122525266,
+        "released_cpu_bundle": 0.35766536508894287,
+        "absolute_difference": 0.0002741938636902086
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    {
+      "id": 3,
+      "name": "scratch",
+      "ap50": {
+        "original_gpu_checkpoint": 0.6644761127114024,
+        "released_cpu_bundle": 0.6644805705931509,
+        "absolute_difference": 4.457881748520798e-06
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.5121227416059206,
+        "released_cpu_bundle": 0.5121243597659084,
+        "absolute_difference": 1.6181599877818087e-06
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    {
+      "id": 4,
+      "name": "spurious_copper",
+      "ap50": {
+        "original_gpu_checkpoint": 0.5712467960385479,
+        "released_cpu_bundle": 0.5714269546160935,
+        "absolute_difference": 0.00018015857754560827
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.3595344018618523,
+        "released_cpu_bundle": 0.35938956211736606,
+        "absolute_difference": 0.00014483974448625814
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    {
+      "id": 5,
+      "name": "copper_burr",
+      "ap50": {
+        "original_gpu_checkpoint": 0.4762498874698504,
+        "released_cpu_bundle": 0.47574610232669634,
+        "absolute_difference": 0.0005037851431540785
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.228351838692528,
+        "released_cpu_bundle": 0.22814169904220077,
+        "absolute_difference": 0.00021013965032723458
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": 1,
+        "fn": 0
+      }
+    },
+    {
+      "id": 6,
+      "name": "stain",
+      "ap50": {
+        "original_gpu_checkpoint": 0.34233991289571597,
+        "released_cpu_bundle": 0.34236747074332113,
+        "absolute_difference": 2.755784760516411e-05
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.1857037285805579,
+        "released_cpu_bundle": 0.1857125303078701,
+        "absolute_difference": 8.801727312213181e-06
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": -1,
+        "fn": 0
+      }
+    },
+    {
+      "id": 7,
+      "name": "short",
+      "ap50": {
+        "original_gpu_checkpoint": 0.5649284334891629,
+        "released_cpu_bundle": 0.5650819743611722,
+        "absolute_difference": 0.00015354087200936117
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.27328656629904174,
+        "released_cpu_bundle": 0.27305957584490353,
+        "absolute_difference": 0.0002269904541382095
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    {
+      "id": 8,
+      "name": "open",
+      "ap50": {
+        "original_gpu_checkpoint": 0.019494374027456057,
+        "released_cpu_bundle": 0.019585815383645108,
+        "absolute_difference": 9.144135618905161e-05
+      },
+      "ap50_95": {
+        "original_gpu_checkpoint": 0.007069049033252066,
+        "released_cpu_bundle": 0.007097506962845906,
+        "absolute_difference": 2.8457929593840234e-05
+      },
+      "operating_count_difference_cpu_minus_gpu": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0
+      }
+    }
+  ],
+  "invalid_predictions_rejected": 76,
+  "cpu_gpu_difference_note": "FP32 CPU and GPU inference may differ numerically; exact measured differences are reported without forcing bitwise or count equality."
+}
