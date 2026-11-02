@@ -1,13 +1,23 @@
 {
   "command": ".venv-cpu/Scripts/python.exe -m pytest -q --junitxml=tmp/final-cpu-tests.xml",
-  "source_revision": "2fef9e671f2dd1f1bed539f07e94564690ad5a0d",
+  "source": {
+    "package_source_sha256": "6fc856587acd0fa5593b3deb630a441e58c63e1865733a49dd06e3e68e1211df",
+    "revision": "c26af3d027b9c1da954f2da48b394f923fc06e50",
+    "dirty": false,
+    "status": [],
+    "git_available": true
+  },
   "python": "3.12.15",
   "torch": "2.7.1+cpu",
   "torchvision": "0.22.1+cpu",
   "cuda_available": false,
-  "tests": 122,
+  "tests": 123,
   "failures": 0,
   "errors": 0,
   "skipped": 0,
-  "elapsed_seconds": 33.422
+  "elapsed_seconds": 29.458,
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed"
+  }
 }
