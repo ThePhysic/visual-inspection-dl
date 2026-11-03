@@ -20,4 +20,7 @@ jobs:
       - run: python -m pip install --no-deps -e .
       - run: python -m ruff check .
       - run: python -m ruff format --check .
-      - run: python -m pytest
+      - name: Released-model CPU smoke (training fixture)
+        run: python -m pytest tests/test_released_model_smoke.py
+      - name: Remaining test suite
+        run: python -m pytest --ignore=tests/test_released_model_smoke.py
