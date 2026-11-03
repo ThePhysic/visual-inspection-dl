@@ -76,6 +76,11 @@ def test_annotation_rejects_geometry_that_collapses_after_rounding_or_clipping(a
         parse_yolo(annotation, 300, 300)
 
 
+def test_annotation_rejects_positive_double_box_that_collapses_in_float32_training():
+    with pytest.raises(ValueError, match="collapses at training precision"):
+        parse_yolo("0 0.5 0.5 0.00000001 0.2", 300, 300)
+
+
 def manifest_fixture():
     return {
         "schema_version": "1",

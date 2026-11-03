@@ -60,6 +60,9 @@ def parse_yolo(text: str, width: int, height: int, num_classes: int = 8) -> tupl
         ]
         if not (0 <= box[0] < box[2] <= width and 0 <= box[1] < box[3] <= height):
             raise ValueError(f"line {line_number}: invalid box extent after clipping and rounding")
+        training_box = np.asarray(box, dtype=np.float32)
+        if not (training_box[0] < training_box[2] and training_box[1] < training_box[3]):
+            raise ValueError(f"line {line_number}: box extent collapses at training precision")
         boxes.append(box)
         labels.append(int(category_float) + 1)
     if len(set(zip(labels, map(tuple, boxes)))) != len(boxes):
