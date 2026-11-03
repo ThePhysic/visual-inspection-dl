@@ -1,0 +1,8 @@
+{
+  "release": "pcb-ind-ssdlite-v1",
+  "artifact_digest": "9037234654bcc190f6f5dd8cda07e70a119ba19b139b2b99118f4d9f27d7e05e",
+  "checkpoint_sha256": "c6d6532da7201fd8f8ba182117e4e92eca5562578b9592bf50b9a44c8670227b",
+  "manifest_sha256": "0b320a9502f0a785f35c7d8496eb3c7a1d8cf5a83804a452a41e271958bb6bbd",
+  "preregistration_sha256": "9ca3f3a7693d339decd0020c35c470b1cfea53b959af3682a6954d5eda057949",
+  "legacy_preregistration": true
+}

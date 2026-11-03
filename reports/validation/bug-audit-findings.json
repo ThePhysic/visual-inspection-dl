@@ -1,0 +1,70 @@
+{
+  "baseline_commit": "f468d9234321fa51df83728070adc20fca0b8003",
+  "scope": "Follow-up adversarial audit requested after delivery",
+  "findings": [
+    {
+      "id": "A1",
+      "severity": "medium",
+      "fault": "Cancelling an ASGI request released admission while its inference thread continued, allowing overlapping model executions.",
+      "fix": "The worker owns an independent execution lock through decode, inference and response validation; cancelled running and queued requests have regressions.",
+      "tests": "tests/test_api.py"
+    },
+    {
+      "id": "A2",
+      "severity": "low",
+      "fault": "Pillow accepted malformed PNG chunks and some JPEGs missing their real end marker, contrary to the documented corrupt-image response.",
+      "fix": "Verify PNG structure and CRCs, and require a genuine JPEG end marker while correctly skipping embedded metadata and permitting trailing bytes.",
+      "tests": "tests/test_api.py"
+    },
+    {
+      "id": "A3",
+      "severity": "medium",
+      "fault": "Study finalization could not resume after partial publication because it recreated already-existing immutable files.",
+      "fix": "Reuse verified stage results and frozen decisions, pin release identity, preflight output collisions, and refuse incomplete holdout reuse without silently repeating evaluation.",
+      "tests": "tests/test_study.py"
+    },
+    {
+      "id": "A4",
+      "severity": "medium",
+      "fault": "Documentation generation required a historical benchmark file that a fresh study no longer produced.",
+      "fix": "Historical benchmarks are optional; release-bound benchmark identity remains mandatory.",
+      "tests": "tests/test_report_generator.py"
+    },
+    {
+      "id": "A5",
+      "severity": "medium",
+      "fault": "Documentation could accept candidate checkpoint/run identities that contradicted the corresponding training-run record.",
+      "fix": "Cross-check run IDs and selected checkpoint digests before publishing generated conclusions.",
+      "tests": "tests/test_report_generator.py"
+    },
+    {
+      "id": "A6",
+      "severity": "medium",
+      "fault": "Even a zero-step resume replaced original source/environment/pretrained provenance with the current execution and local cache.",
+      "fix": "Retain initial provenance in run records and checkpoints; append resume execution history; mark unrecoverable legacy origin unknown.",
+      "tests": "tests/test_training_provenance.py"
+    },
+    {
+      "id": "A7",
+      "severity": "low",
+      "fault": "Very small normalized boxes could collapse during rounding or float32 conversion, escaping parsing and later breaking preparation or training.",
+      "fix": "Reject collapsed geometry during parsing so dataset preparation records an audited exclusion.",
+      "tests": "tests/test_data.py"
+    },
+    {
+      "id": "A8",
+      "severity": "low",
+      "fault": "Metrics advertised a maximum of 100 detections per image but counted all candidates from supported larger-output bundles.",
+      "fix": "Validate all candidates, apply stable score-ranked top100 consistently across metrics and saved evaluation views, and report conditional cap exclusions.",
+      "tests": "tests/test_metrics.py and tests/test_evaluate.py"
+    }
+  ],
+  "scientific_result_integrity": {
+    "released_weights_changed": false,
+    "frozen_data_manifest_changed": false,
+    "frozen_holdout_evidence_changed": false,
+    "saved_validation_predictions_recomputed": true,
+    "published_validation_metric_fields_changed": [],
+    "retraining_or_new_holdout_inference": false
+  }
+}
