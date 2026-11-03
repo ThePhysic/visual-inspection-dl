@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -239,6 +240,72 @@ def model_state_digest(state: dict) -> str:
         digest.update(json.dumps(list(tensor.shape)).encode("ascii") + b"\0")
         digest.update(tensor.reshape(-1).view(torch.uint8).numpy().tobytes())
     return digest.hexdigest()
+
+
+def preserve_run_origin(current: dict, previous: dict, output: Path) -> dict:
+    """Keep initialization provenance while recording each resume execution."""
+    embedded = previous.get("run_provenance")
+    existing_path = output / "run.json"
+    existing = None
+    if existing_path.is_file():
+        try:
+            existing = json.loads(existing_path.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError) as error:
+            raise ValueError("existing run provenance is unreadable") from error
+    for candidate in (embedded, existing):
+        if candidate is None:
+            continue
+        if not isinstance(candidate, dict):
+            raise ValueError("invalid saved run provenance")
+        for key in ("run_id", "dataset_id", "taxonomy_version", "classes", "config"):
+            if candidate.get(key) != current[key]:
+                raise ValueError(f"saved run provenance has a conflicting {key}")
+
+    def origin(candidate):
+        initial = candidate.get("initial_provenance")
+        if initial is None:
+            initial = {key: candidate.get(key) for key in ("source", "environment", "pretrained")}
+        if not isinstance(initial, dict) or any(
+            not isinstance(initial.get(key), dict)
+            for key in ("source", "environment", "pretrained")
+        ):
+            raise ValueError("saved run has incomplete initialization provenance")
+        return initial
+
+    if embedded is not None and existing is not None and origin(embedded) != origin(existing):
+        raise ValueError("run and checkpoint disagree on initialization provenance")
+    saved = existing if existing is not None else embedded
+    if saved is None:
+        initial = {
+            "source": {
+                "revision": None,
+                "package_source_sha256": None,
+                "git_available": False,
+                "status": [],
+                "dirty": None,
+                "unavailable_reason": "legacy checkpoint has no recorded origin",
+            },
+            "environment": {"status": "unavailable from legacy checkpoint"},
+            "pretrained": {
+                "url": None,
+                "sha256": None,
+                "initialization": "unknown: legacy checkpoint has no recorded origin",
+            },
+        }
+        resumes = []
+    else:
+        initial = copy.deepcopy(origin(saved))
+        resumes = copy.deepcopy(saved.get("resume_history", []))
+        if not isinstance(resumes, list) or any(not isinstance(event, dict) for event in resumes):
+            raise ValueError("saved resume history is malformed")
+    execution = {key: copy.deepcopy(current[key]) for key in ("source", "environment")}
+    execution.update(current["resumed_from"])
+    result = copy.deepcopy(current)
+    result.update(copy.deepcopy(initial))
+    result["initial_provenance"] = initial
+    result["execution"] = execution
+    result["resume_history"] = [*resumes, execution]
+    return result
 
 
 def selected_history_row(checkpoint: dict) -> dict:
@@ -575,6 +642,15 @@ def train(args) -> dict:
             "checkpoint_sha256": file_digest(args.resume),
             "epoch": previous["epoch"],
         }
+        provenance = preserve_run_origin(provenance, previous, output)
+    else:
+        provenance["initial_provenance"] = {
+            key: copy.deepcopy(provenance[key]) for key in ("source", "environment", "pretrained")
+        }
+        provenance["execution"] = {
+            key: copy.deepcopy(provenance[key]) for key in ("source", "environment")
+        }
+        provenance["resume_history"] = []
     recovery_log = output / "recovery.json"
     if recovery_log.is_file():
         provenance["recovery"] = json.loads(recovery_log.read_text(encoding="utf-8"))
@@ -648,7 +724,7 @@ def train(args) -> dict:
                         ],
                         "last_finite_batch": last_finite_batch,
                         "config": configuration,
-                        "source": provenance["source"],
+                        "source": provenance["execution"]["source"],
                     },
                 )
                 raise RuntimeError("nonfinite training loss")
@@ -720,6 +796,7 @@ def train(args) -> dict:
             "python_rng": random.getstate(),
             "loader_rng": generator.get_state(),
             "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+            "run_provenance": copy.deepcopy(provenance),
         }
         checkpoint["validation_report"] = validation_snapshot(report, predictions, checkpoint)
         checkpoint["validation_predictions"] = predictions

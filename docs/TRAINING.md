@@ -98,6 +98,14 @@ digests in `recovery.json` and retained in `run.json`; every resume also records
 its starting checkpoint digest and epoch. A report that claims the same model
 identity while contradicting its verified metrics causes a clear failure.
 
+The original source, environment and pretrained-weight identity remain in
+`initial_provenance` and the corresponding top-level fields. Each resume records
+its own source/environment and starting checkpoint in `execution` and
+`resume_history`; it does not replace the initialization record with the current
+machine's cache or code revision. Checkpoints retain this provenance so it can
+be recovered if `run.json` is lost. A legacy checkpoint with neither embedded
+origin nor a run record explicitly reports the origin as unknown.
+
 Keep an older selected `best.pt` alongside `last.pt`: if that older model's
 weights are absent, the latest checkpoint cannot reconstruct them and resume
 fails instead of substituting the final model. Legacy checkpoints without

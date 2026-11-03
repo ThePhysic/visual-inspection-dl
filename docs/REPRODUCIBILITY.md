@@ -71,6 +71,12 @@ validation micro-F1 threshold, writes the decision, evaluates the final holdout,
 packages a bundle, and benchmarks CPU/GPU batch 1 versus 4 on an identical subset.
 Before selection, it verifies exact initial parameter/buffer equality and records
 `initialization-parity.json`, including tensor count and an initial-tensor digest.
+After an interruption, repeat the same command with `--finalize-only` once both
+training runs are complete. Finalization verifies and reuses completed stages;
+it never repeats a completed holdout. An interrupted holdout without a completed
+report requires explicit investigation and cannot be automatically retried.
+The release-bound benchmark is required for documentation; a separate historical
+`benchmark.json` is optional for newly reproduced studies.
 Individual commands and epoch-boundary resume are documented in [TRAINING.md](TRAINING.md).
 
 | Run | Seed | Epochs | Batch | LR | Horizontal flip p | AMP | Elapsed min |
@@ -245,7 +251,7 @@ separate. Attribution and model-use limitations are recorded in
 | requirements-cpu.txt | fb79b27549b42529a58d6d1e55ab1b6aef65c5dcd730b0bcd14bd065bec3e59d |
 | requirements-gpu.lock | dc39816f43e18bb918395c2e86ce2e0170b60e2e30d8f284b35c1c630e96df27 |
 | requirements-gpu.txt | e5ea6fa26f0deaa45abd9378ef9e9ee4f5da4ddb15f635762542111c9912d7ae |
-| scripts/summarize_study.py | e9ff8432bdc93bda5f68db9aec572851f2997a06e2ec2e96ac8a6324518ffbf3 |
+| scripts/summarize_study.py | e299e70da987fe97b6bbd93b7dd92a2255d2487d58aefddbbcb1e2709e1ef35d |
 
 Generated deterministically without current timestamps or external requests by
 `scripts/summarize_study.py`. Regeneration requires completed matching evidence;

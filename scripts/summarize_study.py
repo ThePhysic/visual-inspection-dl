@@ -205,7 +205,6 @@ def load_study(args) -> dict:
         study / "holdout/report.json",
         study / "holdout/per_image_errors.json",
         study / "holdout/examples.json",
-        study / "benchmark.json",
         study / "benchmark-release.json",
         release / "metadata.json",
         release / "evaluation.json",
@@ -233,7 +232,12 @@ def load_study(args) -> dict:
     holdout = evidence.read(study / "holdout/report.json")
     errors = evidence.read(study / "holdout/per_image_errors.json")["images"]
     examples = evidence.read(study / "holdout/examples.json")
-    historical_benchmark = evidence.read(study / "benchmark.json")
+    historical_benchmark_path = study / "benchmark.json"
+    historical_benchmark = (
+        evidence.read(historical_benchmark_path)
+        if evidence.path(historical_benchmark_path).is_file()
+        else None
+    )
     benchmark = evidence.read(study / "benchmark-release.json")
     metadata = evidence.read(release / "metadata.json")
     validate_benchmark_identity(metadata, benchmark)
@@ -345,6 +349,11 @@ def load_study(args) -> dict:
             raise ValueError("Training protocol or manifest provenance is inconsistent")
         if candidate["validation_map50_95"] != run["best_validation_map50_95"]:
             raise ValueError("Candidate validation result differs from completed run")
+        if (
+            candidate["run_id"] != run["run_id"]
+            or candidate["checkpoint_sha256"] != run["best_checkpoint_sha256"]
+        ):
+            raise ValueError("Candidate checkpoint/run identity differs from completed run")
         if not math.isclose(
             max(row["validation_map50_95"] for row in history),
             candidate["validation_map50_95"],
@@ -462,6 +471,13 @@ def model_card(context: dict) -> str:
     selected, audit, benchmark = c["selected"], c["audit"], c["benchmark"]
     run = next(run for run in c["runs"] if run["run_id"] == selected["run_id"])
     config = run["config"]
+    historical_benchmark_note = (
+        f"The earlier [benchmark.json](../{study}/benchmark.json) is preserved as historical\n"
+        "measurement only: its missing model identity fields prevent it from establishing\n"
+        "release-specific performance provenance. It supplies none of the values below."
+        if c["historical_benchmark"] is not None
+        else ""
+    )
     rows = []
     for item in holdout["per_class"]:
         counts = audit["class_image_counts"][item["name"]]
@@ -671,9 +687,7 @@ All performance values below come from the newly measured,
 [release-bound benchmark](../{study}/benchmark-release.json), whose artifact,
 weights, model/taxonomy version, dataset and class mapping exactly match this
 release. Each available configuration records the identity actually loaded.
-The earlier [benchmark.json](../{study}/benchmark.json) is preserved as historical
-measurement only: its missing model identity fields prevent it from establishing
-release-specific performance provenance. It supplies none of the values below.
+{historical_benchmark_note}
 
 Hardware: **{benchmark["hardware"]["gpu"]}**; CPU identification:
 **{c["environment_report"]["hardware"]["cpu"].strip()}**; platform `{benchmark["hardware"]["platform"]}`.
@@ -1035,6 +1049,12 @@ def reproducibility(context: dict) -> str:
         [[path, digest] for path, digest in sorted(c["evidence"].files.items())],
     )
     acquisition = c["acquisition"]
+    historical_benchmark_note = (
+        "The original `benchmark.json` remains historical and is not retroactively assigned\n"
+        "the release identity. "
+        if c["historical_benchmark"] is not None
+        else ""
+    )
     return f"""# Reproducibility report
 
 The released bundle `{metadata["model_version"]}` is tied to completed local GPU
@@ -1100,6 +1120,12 @@ validation micro-F1 threshold, writes the decision, evaluates the final holdout,
 packages a bundle, and benchmarks CPU/GPU batch 1 versus 4 on an identical subset.
 Before selection, it verifies exact initial parameter/buffer equality and records
 `initialization-parity.json`, including tensor count and an initial-tensor digest.
+After an interruption, repeat the same command with `--finalize-only` once both
+training runs are complete. Finalization verifies and reuses completed stages;
+it never repeats a completed holdout. An interrupted holdout without a completed
+report requires explicit investigation and cannot be automatically retried.
+The release-bound benchmark is required for documentation; a separate historical
+`benchmark.json` is optional for newly reproduced studies.
 Individual commands and epoch-boundary resume are documented in [TRAINING.md](TRAINING.md).
 
 {table(["Run", "Seed", "Epochs", "Batch", "LR", "Horizontal flip p", "AMP", "Elapsed min"], configs)}
@@ -1139,8 +1165,7 @@ before documentation can be generated. Benchmark source revision
 exactly from that retained commit. Its recorded working-tree dirty flag is
 `{c["benchmark_source"]["dirty"]}`; unrelated outputs may affect that flag, while
 the source-byte comparison establishes the actual package identity.
-The original `benchmark.json` remains historical and is not retroactively assigned
-the release identity. New timings can differ with hardware warmth and runtime
+{historical_benchmark_note}New timings can differ with hardware warmth and runtime
 conditions; no model or operating-threshold change is implied by remeasurement.
 
 Selected checkpoint SHA256: `{selected["checkpoint_sha256"]}`.
