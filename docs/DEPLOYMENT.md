@@ -91,6 +91,19 @@ commands are in [native CPU evidence](../reports/validation/real-api.json) and
 [container evidence](../reports/validation/real-container.json). The latter separately
 records its offline evaluation-module snapshot; that module does not serve requests.
 
+Those two reports remain historical snapshots. After the bug audit's cancellation
+and image-integrity fixes, the released weights were checked again over native CPU
+HTTP and in a freshly rebuilt CPU container. The fixed image still produced two
+proposals at threshold 0.2, and threshold 1.0 returned an empty result. Valid PNG
+remained accepted; corrupt JPEG, JPEG missing its end marker, truncated PNG, and
+PNG with invalid data/end-chunk CRCs returned HTTP 400. The new
+[native audit evidence](../reports/validation/bug-audit-api.json) and
+[container audit evidence](../reports/validation/bug-audit-container.json) record the
+four current serving-module hashes and full responses. The container's installed
+hashes matched the source, with UID 10001, CPU-only wheels, a read-only release
+mount, and host publication restricted to loopback. Both temporary services were
+stopped after capture. These are functional checks, not latency benchmarks.
+
 The separately installed Windows CPU environment was verified with Python 3.12.15,
 PyTorch 2.7.1+cpu, torchvision 0.22.1+cpu, and `cuda_available: false`. Dependency
 consistency passed for all 44 installed packages. All 99 practical tests passed in
