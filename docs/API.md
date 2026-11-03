@@ -61,7 +61,8 @@ discarded candidates. Empty detections are a successful result.
   The decoded image is limited to **16,000,000 pixels**, checked from its header
   before decompression. Only single-frame PNG and JPEG are accepted; declared and
   actual formats must match. PNG chunk integrity (including the complete IEND
-  chunk and CRCs) is verified before decoding. Corrupt/truncated images are rejected.
+  chunk and CRCs) and JPEG's complete end marker are verified before decoding.
+  Corrupt/truncated images are rejected; bytes after a valid end marker are tolerated.
 - Pillow applies EXIF orientation and converts to RGB. Grayscale is replicated into
   RGB; alpha is discarded without compositing. This matches the training pipeline's
   channel convention. Uploaded bytes are not persisted.

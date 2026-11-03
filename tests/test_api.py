@@ -1,6 +1,7 @@
 import asyncio
 import io
 import threading
+from pathlib import Path
 
 import anyio
 import httpx
@@ -128,13 +129,32 @@ def test_png_requires_complete_chunks_and_valid_crcs(client, corruption):
     assert response.json()["error"]["code"] == "invalid_image"
 
 
-def test_jpeg_requires_complete_pixel_stream(client):
+@pytest.mark.parametrize("source", ["generated", "pcb_fixture", "pcb_fixture_embedded_eoi"])
+def test_jpeg_requires_complete_pixel_stream(client, source):
+    payload = image_bytes(image_format="JPEG")
+    if source != "generated":
+        payload = (Path(__file__).parent / "fixtures/pcb-ind/5810_t_007.jpg").read_bytes()
+    if source == "pcb_fixture_embedded_eoi":
+        # APP15 metadata contains marker-looking bytes, not the image's actual EOI.
+        payload = payload[:2] + b"\xff\xef\x00\x04\xff\xd9" + payload[2:]
     response = client.post(
-        "/v1/predict", content=image_bytes(image_format="JPEG")[:-2],
+        "/v1/predict", content=payload[:-2],
         headers={"Content-Type": "image/jpeg"},
     )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "invalid_image"
+
+
+@pytest.mark.parametrize("progressive", [False, True])
+def test_valid_jpeg_with_trailing_bytes_remains_accepted(client, progressive):
+    stream = io.BytesIO()
+    Image.new("RGB", (80, 40), "white").save(stream, format="JPEG", progressive=progressive)
+    response = client.post(
+        "/v1/predict", content=stream.getvalue() + b"trailing bytes",
+        headers={"Content-Type": "image/jpeg"},
+    )
+    assert response.status_code == 200
+    assert response.json()["image"] == {"width": 80, "height": 40}
 
 
 def test_actual_format_must_match_declared_type(client):

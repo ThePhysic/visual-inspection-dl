@@ -51,6 +51,44 @@ def _complete_png_end(payload: bytes) -> bool:
     return False
 
 
+def _complete_jpeg_end(payload: bytes) -> bool:
+    # Skip metadata rather than mistaking an embedded thumbnail's EOI for the
+    # enclosing image's end. Entropy data escapes FF bytes and has restart markers.
+    offset, in_scan = 2, False
+    while offset < len(payload):
+        if in_scan:
+            offset = payload.find(b"\xff", offset)
+            if offset < 0:
+                return False
+        elif payload[offset] != 0xFF:
+            return False
+        while offset < len(payload) and payload[offset] == 0xFF:
+            offset += 1
+        if offset == len(payload):
+            return False
+        marker = payload[offset]
+        offset += 1
+        if marker == 0x00:
+            if not in_scan:
+                return False
+            continue
+        if marker == 0xD9:
+            return True
+        if marker == 0xD8:
+            return False
+        if marker == 0x01 or 0xD0 <= marker <= 0xD7:
+            continue
+        if offset + 2 > len(payload):
+            return False
+        length = int.from_bytes(payload[offset : offset + 2], "big")
+        if length < 2 or offset + length > len(payload):
+            return False
+        offset += length
+        # DNL may supply the height within an entropy-coded scan.
+        in_scan = marker == 0xDA or (in_scan and marker == 0xDC)
+    return False
+
+
 def decode_image(payload: bytes, media_type: str) -> Image.Image:
     """Decode into the EXIF-oriented RGB original-image coordinate frame."""
     try:
@@ -71,6 +109,8 @@ def decode_image(payload: bytes, media_type: str) -> Image.Image:
                 image.verify()
                 if expected_format == "PNG" and not _complete_png_end(payload):
                     raise ValueError("PNG has no complete, valid terminating chunk")
+                if expected_format == "JPEG" and not _complete_jpeg_end(payload):
+                    raise ValueError("JPEG has no complete terminating marker")
             # Verification invalidates the decoder; use a fresh one for pixel loading.
             with Image.open(io.BytesIO(payload)) as image:
                 image.load()
