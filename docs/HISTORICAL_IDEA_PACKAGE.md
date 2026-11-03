@@ -1,4 +1,9 @@
-# Visual Inspection Deep Learning & Model Serving — Project Idea Package
+# Historical concept brief: Visual Inspection Deep Learning & Model Serving
+
+> This is the original design brief, retained as historical context. It is
+> superseded by the implemented project in the [README](../README.md), the
+> [model card](MODEL_CARD.md), and the [scope and evidence map](ACCEPTANCE.md).
+> Future-tense plans below describe the initial concept, not the current status.
 
 ## 1. Project identity and purpose
 
