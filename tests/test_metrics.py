@@ -159,7 +159,9 @@ def test_max100_excludes_rank101_and_preserves_source_order_for_ties(last_score)
     assert sum(len(item["pr_curve_iou50"]["scores"]) for item in report["per_class"]) == 100
     assert all(row["tp"] == 0 and row["fp"] == 100 for row in threshold_sweep(report))
     assert confusion_matrix(records, prediction, CLASSES, 0.25)["counts"] == [
-        [0, 0, 1], [0, 0, 0], [50, 50, 0]
+        [0, 0, 1],
+        [0, 0, 0],
+        [50, 50, 0],
     ]
 
 
@@ -183,14 +185,15 @@ def test_max100_keeps_highest_score_at_end_and_preserves_diagnostics_when_repeat
     assert report["predictions_discarded_by_max100"] == 1
     assert report["invalid_predictions_rejected"] == 3
     assert confusion_matrix([record()], prediction, CLASSES, 0.1)["counts"] == [
-        [1, 0, 0], [0, 0, 0], [99, 0, 0]
+        [1, 0, 0],
+        [0, 0, 0],
+        [99, 0, 0],
     ]
 
 
 @pytest.mark.parametrize(
     "box,label,score",
-    [([0, 0, float("nan"), 5], 1, 0.01), ([1, 1, 5, 5], 99, 0.01),
-     ([1, 1, 5, 5], 1, float("nan"))],
+    [([0, 0, float("nan"), 5], 1, 0.01), ([1, 1, 5, 5], 99, 0.01), ([1, 1, 5, 5], 1, float("nan"))],
 )
 def test_max100_validates_candidates_before_discarding_them(box, label, score):
     prediction = {
@@ -226,6 +229,4 @@ def test_predictions_within_max100_keep_their_representation_and_report_schema()
     capped = cap_predictions([record()], prediction, CLASSES)
     assert capped == prediction
     assert capped["one"] is prediction["one"]
-    assert "predictions_discarded_by_max100" not in evaluate_detections(
-        [record()], capped, CLASSES
-    )
+    assert "predictions_discarded_by_max100" not in evaluate_detections([record()], capped, CLASSES)

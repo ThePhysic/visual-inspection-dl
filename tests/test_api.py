@@ -138,7 +138,8 @@ def test_jpeg_requires_complete_pixel_stream(client, source):
         # APP15 metadata contains marker-looking bytes, not the image's actual EOI.
         payload = payload[:2] + b"\xff\xef\x00\x04\xff\xd9" + payload[2:]
     response = client.post(
-        "/v1/predict", content=payload[:-2],
+        "/v1/predict",
+        content=payload[:-2],
         headers={"Content-Type": "image/jpeg"},
     )
     assert response.status_code == 400
@@ -150,7 +151,8 @@ def test_valid_jpeg_with_trailing_bytes_remains_accepted(client, progressive):
     stream = io.BytesIO()
     Image.new("RGB", (80, 40), "white").save(stream, format="JPEG", progressive=progressive)
     response = client.post(
-        "/v1/predict", content=stream.getvalue() + b"trailing bytes",
+        "/v1/predict",
+        content=stream.getvalue() + b"trailing bytes",
         headers={"Content-Type": "image/jpeg"},
     )
     assert response.status_code == 200
@@ -256,9 +258,7 @@ def test_cancelled_request_keeps_worker_exclusive_until_completion():
             async with httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=app), base_url="http://test"
             ) as client:
-                request_args = {
-                    "content": image_bytes(), "headers": {"Content-Type": "image/png"}
-                }
+                request_args = {"content": image_bytes(), "headers": {"Content-Type": "image/png"}}
                 pending = asyncio.create_task(client.post("/v1/predict", **request_args))
                 try:
                     assert await asyncio.to_thread(selected.entered.wait, 5)
@@ -317,7 +317,8 @@ def test_cancellation_before_worker_start_does_not_strand_lock(monkeypatch):
                     transport=httpx.ASGITransport(app=app), base_url="http://test"
                 ) as client:
                     request_args = {
-                        "content": image_bytes(), "headers": {"Content-Type": "image/png"}
+                        "content": image_bytes(),
+                        "headers": {"Content-Type": "image/png"},
                     }
                     pending = asyncio.create_task(client.post("/v1/predict", **request_args))
                     async with asyncio.timeout(5):
