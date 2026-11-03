@@ -19,6 +19,10 @@ not queue work. Torch CPU threads default to four and can be configured with
 `INSPECTION_DL_THREADS` (1–32). Larger concurrency and external hosting are outside
 the demonstrated deployment.
 
+If an ASGI request is cancelled during decoding or inference, its worker remains
+exclusive until it finishes. Further predictions receive `503 inference_busy`
+during that interval; cancellation cannot make model execution overlap.
+
 For an explicitly simulated contract demonstration, use `--fixture`. Fixture responses
 always report `backend: "fixture"`, `simulated: true`, and a fixture model version.
 No model initialization or inference failure falls back to that backend.
@@ -56,7 +60,8 @@ discarded candidates. Empty detections are a successful result.
   bytes, with a 30-second upload deadline. Declared lengths must match actual bytes.
   The decoded image is limited to **16,000,000 pixels**, checked from its header
   before decompression. Only single-frame PNG and JPEG are accepted; declared and
-  actual formats must match. Corrupt/truncated images are rejected.
+  actual formats must match. PNG chunk integrity (including the complete IEND
+  chunk and CRCs) is verified before decoding. Corrupt/truncated images are rejected.
 - Pillow applies EXIF orientation and converts to RGB. Grayscale is replicated into
   RGB; alpha is discarded without compositing. This matches the training pipeline's
   channel convention. Uploaded bytes are not persisted.

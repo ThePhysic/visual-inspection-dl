@@ -1,5 +1,9 @@
+import asyncio
 import io
+import threading
 
+import anyio
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -104,6 +108,35 @@ def test_corrupt_image_predictable_error(client, payload):
     assert response.json()["error"]["code"] == "invalid_image"
 
 
+@pytest.mark.parametrize(
+    "corruption", ["missing_iend", "missing_iend_crc", "bad_idat_crc", "bad_iend_crc"]
+)
+def test_png_requires_complete_chunks_and_valid_crcs(client, corruption):
+    payload = bytearray(image_bytes())
+    if corruption == "missing_iend":
+        del payload[-12:]
+    elif corruption == "missing_iend_crc":
+        del payload[-4:]
+    elif corruption == "bad_idat_crc":
+        payload[-13] ^= 1
+    else:
+        payload[-1] ^= 1
+    response = client.post(
+        "/v1/predict", content=bytes(payload), headers={"Content-Type": "image/png"}
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_image"
+
+
+def test_jpeg_requires_complete_pixel_stream(client):
+    response = client.post(
+        "/v1/predict", content=image_bytes(image_format="JPEG")[:-2],
+        headers={"Content-Type": "image/jpeg"},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_image"
+
+
 def test_actual_format_must_match_declared_type(client):
     response = client.post(
         "/v1/predict", content=image_bytes(), headers={"Content-Type": "image/jpeg"}
@@ -174,6 +207,118 @@ def test_busy_request_is_bounded(client):
         assert response.status_code == 503 and response.json()["error"]["code"] == "inference_busy"
     finally:
         lock.release()
+
+
+def test_cancelled_request_keeps_worker_exclusive_until_completion():
+    class BlockingBackend(FixtureBackend):
+        def __init__(self):
+            super().__init__()
+            self.entered = threading.Event()
+            self.release = threading.Event()
+            self.active = 0
+            self.max_active = 0
+
+        def infer(self, image):
+            self.active += 1
+            self.max_active = max(self.max_active, self.active)
+            self.entered.set()
+            try:
+                if not self.release.wait(5):
+                    raise TimeoutError("test did not release worker")
+                return super().infer(image)
+            finally:
+                self.active -= 1
+
+    async def scenario():
+        selected = BlockingBackend()
+        app = create_app(backend=selected)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                request_args = {
+                    "content": image_bytes(), "headers": {"Content-Type": "image/png"}
+                }
+                pending = asyncio.create_task(client.post("/v1/predict", **request_args))
+                try:
+                    assert await asyncio.to_thread(selected.entered.wait, 5)
+                    pending.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await pending
+                    assert selected.active == 1
+                    response = await client.post("/v1/predict", **request_args)
+                    assert response.status_code == 503
+                    assert response.json()["error"]["code"] == "inference_busy"
+                finally:
+                    selected.release.set()
+                    if not pending.done():
+                        pending.cancel()
+                        with pytest.raises(asyncio.CancelledError):
+                            await pending
+                    # Wait for the actual worker's finally, including postprocessing.
+                    acquired = await asyncio.to_thread(app.state.execution_lock.acquire, timeout=5)
+                    assert acquired
+                    app.state.execution_lock.release()
+                response = await client.post("/v1/predict", **request_args)
+                assert response.status_code == 200
+                assert selected.max_active == 1
+
+    asyncio.run(scenario())
+
+
+def test_cancellation_before_worker_start_does_not_strand_lock(monkeypatch):
+    from inspection_dl import api
+
+    async def scenario():
+        limiter = anyio.to_thread.current_default_thread_limiter()
+        old_tokens = limiter.total_tokens
+        limiter.total_tokens = 1
+        occupied, release = threading.Event(), threading.Event()
+        scheduled = asyncio.Event()
+        original_runner = api.run_in_threadpool
+
+        def occupy_pool():
+            occupied.set()
+            if not release.wait(5):
+                raise TimeoutError("test did not release thread pool")
+
+        async def announce_worker(*args, **kwargs):
+            scheduled.set()
+            return await original_runner(*args, **kwargs)
+
+        monkeypatch.setattr(api, "run_in_threadpool", announce_worker)
+        blocker = asyncio.create_task(anyio.to_thread.run_sync(occupy_pool))
+        pending = None
+        try:
+            assert await asyncio.to_thread(occupied.wait, 5)
+            app = create_app(backend="fixture")
+            async with app.router.lifespan_context(app):
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    request_args = {
+                        "content": image_bytes(), "headers": {"Content-Type": "image/png"}
+                    }
+                    pending = asyncio.create_task(client.post("/v1/predict", **request_args))
+                    async with asyncio.timeout(5):
+                        await scheduled.wait()
+                    pending.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await pending
+                    release.set()
+                    await blocker
+                    response = await client.post("/v1/predict", **request_args)
+                    assert response.status_code == 200
+        finally:
+            release.set()
+            if pending is not None and not pending.done():
+                pending.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await pending
+            await blocker
+            limiter.total_tokens = old_tokens
+
+    asyncio.run(scenario())
 
 
 class BadBackend(FixtureBackend):

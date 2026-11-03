@@ -37,6 +37,20 @@ def _milliseconds(start: float) -> float:
     return (time.perf_counter() - start) * 1000
 
 
+def _complete_png_end(payload: bytes) -> bool:
+    # Pillow.verify() checks chunk CRCs but stops before checking IEND's data/CRC.
+    offset = 8
+    while offset + 12 <= len(payload):
+        length = int.from_bytes(payload[offset : offset + 4], "big")
+        end = offset + length + 12
+        if end > len(payload):
+            return False
+        if payload[offset + 4 : offset + 8] == b"IEND":
+            return payload[offset:end] == b"\x00\x00\x00\x00IEND\xaeB`\x82"
+        offset = end
+    return False
+
+
 def decode_image(payload: bytes, media_type: str) -> Image.Image:
     """Decode into the EXIF-oriented RGB original-image coordinate frame."""
     try:
@@ -54,6 +68,11 @@ def decode_image(payload: bytes, media_type: str) -> Image.Image:
                     raise InferenceError(
                         415, "unsupported_image", "Animated images are unsupported."
                     )
+                image.verify()
+                if expected_format == "PNG" and not _complete_png_end(payload):
+                    raise ValueError("PNG has no complete, valid terminating chunk")
+            # Verification invalidates the decoder; use a fresh one for pixel loading.
+            with Image.open(io.BytesIO(payload)) as image:
                 image.load()
                 return ImageOps.exif_transpose(image).convert("RGB")
     except InferenceError:
@@ -180,6 +199,7 @@ def create_app(
     async def lifespan(app: FastAPI):
         app.state.backend = None
         app.state.model_lock = threading.Lock()
+        app.state.execution_lock = threading.Lock()
         try:
             if isinstance(backend, FixtureBackend):
                 app.state.backend = backend
@@ -248,7 +268,7 @@ def create_app(
         selected = ready_backend()
         return {**selected.metadata, "backend": selected.name, "simulated": selected.simulated}
 
-    def execute(
+    def execute_prediction(
         payload: bytes, media_type: str, threshold: float | None, started: float
     ) -> Prediction:
         selected = ready_backend()
@@ -301,6 +321,21 @@ def create_app(
         finally:
             image.close()
 
+    def execute(
+        payload: bytes, media_type: str, threshold: float | None, started: float
+    ) -> Prediction:
+        # Request cancellation cannot stop a running thread. Its own lock must cover
+        # decoding/inference through completion, even after admission is released.
+        # Acquire here so cancellation before thread startup cannot strand the lock.
+        if not app.state.execution_lock.acquire(blocking=False):
+            raise InferenceError(
+                503, "inference_busy", "Another inference request is active; retry later."
+            )
+        try:
+            return execute_prediction(payload, media_type, threshold, started)
+        finally:
+            app.state.execution_lock.release()
+
     @app.post("/v1/predict", response_model=Prediction)
     async def predict(request: Request, threshold: float | None = Query(default=None, ge=0, le=1)):
         started = time.perf_counter()
@@ -327,6 +362,10 @@ def create_app(
                 503, "inference_busy", "Another inference request is active; retry later."
             )
         try:
+            if app.state.execution_lock.locked():
+                raise InferenceError(
+                    503, "inference_busy", "Another inference request is active; retry later."
+                )
             payload = bytearray()
             try:
                 async with asyncio.timeout(30):
