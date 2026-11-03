@@ -1,0 +1,22 @@
+{
+  "command": ".venv-cpu/Scripts/python.exe -m pytest -q --junitxml=tmp/bug-audit-tests.xml",
+  "source": {
+    "package_source_sha256": "889d0a60478fc9f938900813805dc801f963ddb1e3df9b53ccfc110e616a3de6",
+    "revision": "800157f9ee1c5618c59e58b25de366b4bde3f6b5",
+    "dirty": false,
+    "status": [],
+    "git_available": true
+  },
+  "python": "3.12.15",
+  "torch": "2.7.1+cpu",
+  "cuda_available": false,
+  "tests": 213,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 58.902,
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed"
+  }
+}
