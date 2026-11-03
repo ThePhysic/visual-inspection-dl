@@ -2,7 +2,7 @@
 
 No crowd/ignore annotations or area/maxDet COCO averaging are implemented; this
 is explicitly a COCO-style AP definition, not an assertion of COCOeval parity.
-Every prediction is capped upstream to 100 detections per image. Classes with
+Evaluation retains the highest-scoring 100 detections per image. Classes with
 no ground truth have AP=null and are excluded from the macro AP denominator.
 """
 
@@ -13,6 +13,7 @@ from collections import defaultdict
 import numpy as np
 
 IOU_THRESHOLDS = [round(0.5 + i * 0.05, 2) for i in range(10)]
+MAX_DETECTIONS = 100
 
 
 def box_iou(box: list[float], boxes: list[list[float]]) -> np.ndarray:
@@ -111,14 +112,14 @@ def confidence_reliability(curve: dict) -> list[dict]:
     return bins
 
 
-def evaluate_detections(
-    records: list[dict], predictions: dict, classes: list[dict], threshold: float = 0.25
-) -> dict:
-    if not records:
-        raise ValueError("evaluation split is empty")
-    if len({record["id"] for record in records}) != len(records):
-        raise ValueError("evaluation image ids must be unique")
+def cap_predictions(records: list[dict], predictions: dict, classes: list[dict]) -> dict:
+    """Validate before applying max100; ties preserve the original source order.
+
+    Unchanged entries retain their exact representation. A conditional per-image
+    discard count survives repeated normalization and is aggregated by evaluation.
+    """
     allowed = {item["id"] for item in classes}
+    capped = dict(predictions)
     for record in records:
         if set(record["labels"]) - allowed:
             raise ValueError("unknown ground-truth class")
@@ -134,6 +135,34 @@ def evaluate_detections(
                 0 <= box[0] < box[2] <= record["width"] and 0 <= box[1] < box[3] <= record["height"]
             ):
                 raise ValueError("prediction outside original frame")
+        if len(prediction["scores"]) > MAX_DETECTIONS:
+            order = sorted(
+                range(len(prediction["scores"])),
+                key=lambda index: (-prediction["scores"][index], index),
+            )[:MAX_DETECTIONS]
+            capped[record["id"]] = {
+                **prediction,
+                **{
+                    key: [prediction[key][index] for index in order]
+                    for key in ("boxes", "labels", "scores")
+                },
+                "predictions_discarded_by_max100": prediction.get(
+                    "predictions_discarded_by_max100", 0
+                )
+                + len(prediction["scores"])
+                - MAX_DETECTIONS,
+            }
+    return capped
+
+
+def evaluate_detections(
+    records: list[dict], predictions: dict, classes: list[dict], threshold: float = 0.25
+) -> dict:
+    if not records:
+        raise ValueError("evaluation split is empty")
+    if len({record["id"] for record in records}) != len(records):
+        raise ValueError("evaluation image ids must be unique")
+    predictions = cap_predictions(records, predictions, classes)
     per_class = []
     all_ap = []
     aggregate_counts = {"tp": 0, "fp": 0, "fn": 0}
@@ -164,7 +193,7 @@ def evaluate_detections(
     tp, fp, fn = (aggregate_counts[key] for key in ("tp", "fp", "fn"))
     precision = tp / max(tp + fp, 1)
     recall = tp / max(tp + fn, 1)
-    return {
+    report = {
         "definition": "101-point interpolated class-aware AP; IoU .50:.05:.95; no crowd/ignore; max100 detections/image; absent GT classes excluded from macro AP",
         "images": len(records),
         "invalid_predictions_rejected": sum(
@@ -185,6 +214,13 @@ def evaluate_detections(
         },
         "per_class": per_class,
     }
+    discarded = sum(
+        predictions.get(record["id"], {}).get("predictions_discarded_by_max100", 0)
+        for record in records
+    )
+    if discarded:
+        report["predictions_discarded_by_max100"] = discarded
+    return report
 
 
 def threshold_sweep(report: dict) -> list[dict]:
@@ -213,6 +249,7 @@ def confusion_matrix(
     records: list[dict], predictions: dict, classes: list[dict], threshold: float
 ) -> dict:
     """Greedy class-agnostic IoU .5 matches; rows truth, columns prediction."""
+    predictions = cap_predictions(records, predictions, classes)
     ids = [item["id"] for item in classes]
     lookup = {class_id: index for index, class_id in enumerate(ids)}
     matrix = np.zeros((len(ids) + 1, len(ids) + 1), dtype=np.int64)

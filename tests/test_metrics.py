@@ -5,6 +5,7 @@ import pytest
 
 from inspection_dl.metrics import (
     box_iou,
+    cap_predictions,
     confusion_matrix,
     evaluate_detections,
     grouped_bootstrap,
@@ -137,3 +138,94 @@ def test_filtered_prediction_exclusions_remain_visible_in_aggregate():
     report = evaluate_detections(records, predictions, CLASSES)
     assert report["map50"] == 1
     assert report["invalid_predictions_rejected"] == 3
+
+
+@pytest.mark.parametrize("last_score", [0.8, 0.9])
+def test_max100_excludes_rank101_and_preserves_source_order_for_ties(last_score):
+    records = [record()]
+    prediction = {
+        "one": {
+            "boxes": [[60, 60, 80, 80]] * 100 + [[10, 10, 30, 30]],
+            "labels": [1, 2] * 50 + [1],
+            "scores": [0.9] * 100 + [last_score],
+        }
+    }
+    report = evaluate_detections(records, prediction, CLASSES)
+    assert report["map50"] == 0
+    assert report["operating"]["tp"] == 0
+    assert report["operating"]["fp"] == 100
+    assert report["operating"]["fn"] == 1
+    assert report["predictions_discarded_by_max100"] == 1
+    assert sum(len(item["pr_curve_iou50"]["scores"]) for item in report["per_class"]) == 100
+    assert all(row["tp"] == 0 and row["fp"] == 100 for row in threshold_sweep(report))
+    assert confusion_matrix(records, prediction, CLASSES, 0.25)["counts"] == [
+        [0, 0, 1], [0, 0, 0], [50, 50, 0]
+    ]
+
+
+def test_max100_keeps_highest_score_at_end_and_preserves_diagnostics_when_repeated():
+    prediction = {
+        "one": {
+            "boxes": [[60, 60, 80, 80]] * 100 + [[10, 10, 30, 30]],
+            "labels": [1] * 101,
+            "scores": [0.1] * 100 + [0.95],
+            "invalid_predictions_rejected": 3,
+        }
+    }
+    capped = cap_predictions([record()], prediction, CLASSES)
+    assert len(prediction["one"]["boxes"]) == 101
+    assert capped["one"]["boxes"][0] == [10, 10, 30, 30]
+    assert cap_predictions([record()], capped, CLASSES) == capped
+    report = evaluate_detections([record()], capped, CLASSES, threshold=0.1)
+    assert report["map50"] == 1
+    assert report["operating"]["tp"] == 1
+    assert report["operating"]["fp"] == 99
+    assert report["predictions_discarded_by_max100"] == 1
+    assert report["invalid_predictions_rejected"] == 3
+    assert confusion_matrix([record()], prediction, CLASSES, 0.1)["counts"] == [
+        [1, 0, 0], [0, 0, 0], [99, 0, 0]
+    ]
+
+
+@pytest.mark.parametrize(
+    "box,label,score",
+    [([0, 0, float("nan"), 5], 1, 0.01), ([1, 1, 5, 5], 99, 0.01),
+     ([1, 1, 5, 5], 1, float("nan"))],
+)
+def test_max100_validates_candidates_before_discarding_them(box, label, score):
+    prediction = {
+        "one": {
+            "boxes": [[10, 10, 30, 30]] * 100 + [box],
+            "labels": [1] * 100 + [label],
+            "scores": [0.9] * 100 + [score],
+        }
+    }
+    with pytest.raises(ValueError):
+        evaluate_detections([record()], prediction, CLASSES)
+    with pytest.raises(ValueError):
+        confusion_matrix([record()], prediction, CLASSES, 0.25)
+
+
+def test_bootstrap_uses_the_same_global_max100_cap():
+    records = [record(str(index)) for index in range(5)]
+    predictions = {
+        row["id"]: {
+            "boxes": [[60, 60, 80, 80]] * 100 + [[10, 10, 30, 30]],
+            "labels": [1] * 101,
+            "scores": [0.9] * 100 + [0.8],
+        }
+        for row in records
+    }
+    result = grouped_bootstrap(records, predictions, CLASSES, 0.25, repetitions=10)
+    assert result["precision_95_interval"] == [0, 0]
+    assert result["recall_95_interval"] == [0, 0]
+
+
+def test_predictions_within_max100_keep_their_representation_and_report_schema():
+    prediction = {"one": {"boxes": [[10, 10, 30, 30]], "labels": [1], "scores": [0.9]}}
+    capped = cap_predictions([record()], prediction, CLASSES)
+    assert capped == prediction
+    assert capped["one"] is prediction["one"]
+    assert "predictions_discarded_by_max100" not in evaluate_detections(
+        [record()], capped, CLASSES
+    )

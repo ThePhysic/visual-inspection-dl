@@ -15,6 +15,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from .bundle import load_bundle
 from .metrics import (
     box_iou,
+    cap_predictions,
     confusion_matrix,
     evaluate_detections,
     grouped_bootstrap,
@@ -345,6 +346,7 @@ def evaluate(args) -> dict:
     evaluation_source = source_provenance()
     start = time.perf_counter()
     predictions = predict_records(model, records, args.data_root, args.device, args.batch_size)
+    predictions = cap_predictions(records, predictions, manifest["classes"])
     report = evaluate_detections(records, predictions, manifest["classes"], args.threshold)
     sweep = threshold_sweep(report)
     if args.select_threshold:

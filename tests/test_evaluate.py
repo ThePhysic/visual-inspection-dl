@@ -187,6 +187,30 @@ def test_bundle_evaluation_rejects_ambiguous_source(released_fixture):
         )
 
 
+def test_evaluation_saves_the_same_capped_predictions_used_for_metrics_and_errors(
+    released_fixture, monkeypatch
+):
+    fixture = released_fixture
+    prediction = {
+        "1": {
+            "boxes": [[50, 0, 60, 10]] * 100 + [[5, 8, 37, 42]],
+            "labels": [1] * 101,
+            "scores": [0.9] * 100 + [0.8],
+        }
+    }
+    monkeypatch.setattr("inspection_dl.evaluate.predict_records", lambda *args: prediction)
+    output = fixture["root"] / "capped"
+    report = evaluate(Namespace(**fixture["config"], output=str(output)))
+    saved = json.loads((output / "predictions.json").read_text())
+    errors = json.loads((output / "per_image_errors.json").read_text())["images"][0]
+    assert len(saved["1"]["boxes"]) == errors["predictions"] == 100
+    assert report["operating"]["tp"] == errors["tp"] == 0
+    assert report["operating"]["fp"] == errors["fp"] == 100
+    assert report["operating"]["fn"] == errors["fn"] == 1
+    assert saved["1"]["predictions_discarded_by_max100"] == 1
+    assert report["predictions_discarded_by_max100"] == 1
+
+
 def test_robustness_clean_control_uses_identical_single_image_policy(tmp_path):
     class RecordingDetector(torch.nn.Module):
         def __init__(self):

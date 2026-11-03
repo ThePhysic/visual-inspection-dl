@@ -62,6 +62,20 @@ def test_malformed_annotation_rejected(annotation):
         parse_yolo(annotation, 300, 300)
 
 
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        "0 0.5 0.5 0.0000000001 0.2",
+        "0 0.5 0.5 0.2 0.0000000001",
+        "0 -0.0000005 0.5 0.0000001 0.2",
+        "0 1.0000005 0.5 0.0000001 0.2",
+    ],
+)
+def test_annotation_rejects_geometry_that_collapses_after_rounding_or_clipping(annotation):
+    with pytest.raises(ValueError, match="after clipping and rounding"):
+        parse_yolo(annotation, 300, 300)
+
+
 def manifest_fixture():
     return {
         "schema_version": "1",
@@ -194,3 +208,27 @@ def test_preparation_reports_exclusions_and_freezes_outputs(tmp_path):
     assert prepare_dataset(root, output) == result
     with pytest.raises(ValueError, match="frozen"):
         _write_immutable(output, {"different": True})
+
+
+def test_preparation_audits_rounded_zero_area_image_and_keeps_valid_images(tmp_path):
+    root = tmp_path / "raw"
+    images, labels = root / "images" / "train", root / "labels" / "train"
+    images.mkdir(parents=True)
+    labels.mkdir(parents=True)
+    for name, annotation in {
+        "good": "0 0.5 0.5 0.2 0.2",
+        "rounded_zero": "0 0.5 0.5 0.0000000001 0.2",
+    }.items():
+        Image.new("RGB", (300, 300), "white").save(images / f"{name}.png")
+        (labels / f"{name}.txt").write_text(annotation, encoding="utf-8")
+    output = tmp_path / "manifest.json"
+    result = prepare_dataset(root, output)
+    assert [row["image"] for row in result["records"]] == ["images/train/good.png"]
+    audit = json.loads(output.with_name("manifest.audit.json").read_text())
+    assert audit["accepted_images"] == 1
+    assert audit["exclusions"] == [
+        {
+            "image": "images/train/rounded_zero.png",
+            "reason": "line 1: invalid box extent after clipping and rounding",
+        }
+    ]

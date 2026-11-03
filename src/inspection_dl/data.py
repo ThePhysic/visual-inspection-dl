@@ -52,14 +52,15 @@ def parse_yolo(text: str, width: int, height: int, num_classes: int = 8) -> tupl
         # Decimal YOLO serialization can put an intended boundary ~1e-6 outside the image.
         if x1 < -1e-6 or y1 < -1e-6 or x2 > 1 + 1e-6 or y2 > 1 + 1e-6:
             raise ValueError(f"line {line_number}: out-of-bounds box")
-        boxes.append(
-            [
-                round(max(0.0, x1) * width, 6),
-                round(max(0.0, y1) * height, 6),
-                round(min(1.0, x2) * width, 6),
-                round(min(1.0, y2) * height, 6),
-            ]
-        )
+        box = [
+            round(max(0.0, x1) * width, 6),
+            round(max(0.0, y1) * height, 6),
+            round(min(1.0, x2) * width, 6),
+            round(min(1.0, y2) * height, 6),
+        ]
+        if not (0 <= box[0] < box[2] <= width and 0 <= box[1] < box[3] <= height):
+            raise ValueError(f"line {line_number}: invalid box extent after clipping and rounding")
+        boxes.append(box)
         labels.append(int(category_float) + 1)
     if len(set(zip(labels, map(tuple, boxes)))) != len(boxes):
         raise ValueError("Duplicate label rows")
